@@ -1067,7 +1067,7 @@ def build_probation_deck(spec: dict, base: Path, template_path: Path, output: Pa
         builder.box(slide, .62, 1.0, 1.15, .06, "accent")
         if page.get("subtitle") and page.get("type") not in {"cover", "closing"}:
             builder.text(slide, page["subtitle"], 1.92, .85, 10.7, .28, 10.5, "muted")
-        builder.text(slide, "人形机器人（上海）有限公司  |  轮臂-应用开发  |  赵文辉", .55, 7.12, 10.5, .18, 8.5, "muted")
+        builder.text(slide, spec["meta"].get("footer", ""), .55, 7.12, 10.5, .18, 8.5, "muted")
         builder.text(slide, f"{index:02d}", 12.25, 7.08, .45, .22, 9, "muted")
         if page.get("type") == "cover":
             builder.text(slide, page.get("body", ""), .8, 1.8, 7.0, 2.5, 27, "accent", True)

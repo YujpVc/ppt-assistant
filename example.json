@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "title": "PPT 助手示例"
+  },
+  "slides": [
+    {
+      "layout": "cover",
+      "title": "PPT 助手示例",
+      "body": "可编辑演示文稿"
+    },
+    {
+      "layout": "cards",
+      "title": "验证结果",
+      "items": [
+        {
+          "title": "可编辑",
+          "body": "原生文本与图表"
+        },
+        {
+          "title": "已校验",
+          "body": "结构检查通过"
+        }
+      ]
+    }
+  ]
+}

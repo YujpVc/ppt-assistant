@@ -4,9 +4,11 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-在 DSH 的插件管理页面安装 `@rx01334/ppt-assistant`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add @rx01334/ppt-assistant`；Desktop 使用应用的插件管理入口。
+在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.0.0/ppt-assistant-1.0.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.0.0/ppt-assistant-1.0.0.tgz`。
 
-此包保留原有 PPT 助手提示词和工具组合，同时附带已有 Python 生成引擎；不复制用户配置、API 密钥、机构模板、Logo、历史会话或生成的文件。提示词沿用原来的引擎发现规则：`deepseek-harness/ppt-assistant`、`~/ppt-assistant` 或安装后的 `node_modules/@rx01334/ppt-assistant`。
+包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
+
+此包保留原有 PPT 助手提示词和工具组合，同时附带 Python 生成引擎和通用主题资源；不复制用户配置、API 密钥、机构模板、机构 Logo、历史会话或生成的文件。提示词沿用原来的引擎发现规则：`deepseek-harness/ppt-assistant`、`~/ppt-assistant` 或安装后的 `node_modules/@rx01334/ppt-assistant`。
 
 ## 运行环境
 
@@ -23,7 +25,7 @@ python3 build_deck.py template-spec.json output.pptx --template template.pptx
 python3 quality_check.py output.pptx --template template.pptx
 ```
 
-内置默认生成器支持原生可编辑文本、表格与图表。模板、Logo 由使用者显式提供，旧版 `generate_ppt.py` 需 `--template`，本包不发布本机模板或机构素材。生成质量取决于输入素材和逐页检查；没有运行视觉检查时不得声称已通过。
+内置默认生成器支持原生可编辑文本、表格与图表。模板、Logo 由使用者显式提供，本包提供通用默认模板；旧版 `generate_ppt.py` 可用 `--template` 指定用户模板，不包含本机机构素材。生成质量取决于输入素材和逐页检查；没有运行视觉检查时不得声称已通过。
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。
 
