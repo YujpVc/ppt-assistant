@@ -1,0 +1,61 @@
+{
+  "name": "@rx01334/ppt-assistant",
+  "version": "1.0.0",
+  "description": "PPT 助手 agent preset for DeepSeek Harness: generates, edits, renders and quality-checks editable PowerPoint decks.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "files": [
+    "cordis.patch.yml",
+    "README.md",
+    "preset.yml",
+    "build_deck.py",
+    "charts.py",
+    "grasp_evidence.py",
+    "generate_ppt.py",
+    "generate_consensus.py",
+    "quality_check.py",
+    "check.py",
+    "ingest.py",
+    "render_ppt.py",
+    "image_fetch.py",
+    "vision_check.py",
+    "restyle.py",
+    "run_pptfast.sh",
+    "density-recipe.md",
+    "speaker_notes.py",
+    "slide_ops.py",
+    "slide_patch.py",
+    "asset_catalog.py",
+    "delivery.py",
+    "video_gif.py",
+    "formula.py",
+    "requirements.txt",
+    "LICENSE",
+    "config.json",
+    "assets"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent-preset": ">=0.2.1-rc.3 <0.3.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "powerpoint",
+    "pptx"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YujpVc/ppt-assistant.git"
+  },
+  "homepage": "https://github.com/YujpVc/ppt-assistant#readme"
+}

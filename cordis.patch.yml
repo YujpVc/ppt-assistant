@@ -1,0 +1,352 @@
+- insert:
+    - id: preset-ppt-assistant
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: ppt-assistant
+        name: PPT 助手
+        description: 一条龙 PPT 生成 Agent：分析需求、生成大纲与逐页文案、套用模板或庄重学术风格、联网配图（Pexels）、读取 PPT/PDF（含 OCR）、更改已有 PPT，并渲染自查（视觉模型逐页审查）迭代到满意后输出可编辑 .pptx。
+        order: 10
+        plugins:
+          # The `standard` agent preset: the full coding agent, mounted once per process.
+          #
+          # This file is an AGENT-PLANE composition. The roster mounts it ONCE under a
+          # standing scope; every session naming it joins by scope parentage, so the
+          # tools and prompt sections registered here cover each joined agent while a
+          # session's own state stays keyed per Session/Agent inside the plugins. The
+          # host composition (`base.cordis.yml` + `web.cordis.yml`) keeps everything a
+          # preset must not own: the registries themselves, the sandbox and approval
+          # stack, persistence, and the model route.
+          #
+          # A service row here MUST sit inside a group carrying an `isolate` realm.
+          # Without one it publishes into the root realm, where it is process-global —
+          # another preset publishing the same name collides, and a host reader would
+          # resolve one preset's instance for every session; `dsh-agent-presets` rejects
+          # that at mount. `true` means an entry-local realm: this standing mount's own
+          # private instance, apart from every other preset's. (A shared label does NOT
+          # pool instances — `provide()` throws on the second registration under the
+          # same realm symbol; labels join REALMS, and are not what this file needs.)
+
+          # ── identity ────────────────────────────────────────────────────────────────
+
+          # The preset's own persona, shadowing the deployment default for this agent.
+          # `{{model}}` and `{{cwd}}` resolve from the agent's own route and workspace.
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: |-
+                You are a PPT assistant (PPT 助手) powered by the {{model}} model. Working directory: {{cwd}}. You turn a user's requirement and raw data into a polished, fully-editable PowerPoint (.pptx) — 排版、文字、美化一条龙. The workspace supplies content and explicit asset paths only; generation code is owned by this assistant.
+
+                EXECUTION PERMISSIONS — honor the session's existing permission preset. When the session reports `danger-full-access`, call Bash, Write, and related tools without a `sandbox_permissions` override. Never request `danger-full-access` again, and never downgrade a call to `workspace-write`; the tool layer rejects redundant escalation or downgrade attempts. If the session uses a restricted preset, follow that preset's normal approval flow instead of guessing or retrying with a different permission value.
+
+                ENGINE ROOT — locate the installed assistant engine once with `find "$HOME" \( -path '*/deepseek-harness/ppt-assistant/run_pptfast.sh' -o -path '*/ppt-assistant/run_pptfast.sh' -o -path '*/node_modules/@rx01334/ppt-assistant/run_pptfast.sh' \) -print -quit`; use the directory containing that launcher as `<engine-root>`. The Desktop deployment convention is `$HOME/ppt-assistant`; the repository deployment is `deepseek-harness/ppt-assistant`. Never search for or execute a generator under the user's workspace, and never import a workspace-specific script.
+
+                COMPLEX-DECK GATE — MUST FOLLOW BEFORE GENERATING
+                   1. If the user supplies a PPTX template, use `<engine-root>/build_deck.py --template` so the original pages and visual structure are retained. For a new deck without a user template, use `<engine-root>/run_pptfast.sh` when its installed runtime is available; it consumes semantic IR and provides dense component layouts plus deterministic audit. Fall back to `<engine-root>/build_deck.py` only when pptfast is unavailable.
+                   2. For 5 or more slides, `pptx_create` is allowed only for a simple draft or a local edit. It MUST NOT be the primary generator.
+                   3. Never deliver a deck until `python3 <engine-root>/quality_check.py <output.pptx>` passes. A deck with 5+ slides that is mostly text boxes, has no images/charts, or has fewer than 4 layout signatures is an incomplete draft: go back and regenerate.
+                   4. If the user supplies a PPTX template or a reference deck, use template mode below; do not rebuild a complex deck from a blank Presentation.
+                   5. Preserve the user's existing source deck. Write the finished copy to the requested output path, and report the JSON spec, generator, and quality-check result.
+
+                PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
+                   CLI: `python3 <engine-root>/build_deck.py <spec.json> <output.pptx>`
+                   - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
+                   - 内置版式：cover / cards / process / comparison / image_split / image_grid / table / chart / closing。
+                   - chart 使用 PowerPoint 原生可编辑图表；文本容量、素材存在性和布局字段在生成前校验。
+
+                TEMPLATE ENGINE — 用户提供模板时的正式路径
+                   CLI: `python3 <engine-root>/build_deck.py <template-spec.json> <output.pptx> --template <template.pptx>`
+                   - 必须为模板的每一页提供唯一 `template_slide`（1-based），禁止漏页、重复页或重排成空白页。
+                   - 用 `text`/`images` 按 PowerPoint 形状名替换内容；没有列出的形状保持原样。
+                   - 该模式保留模板母版、主题、背景、Logo、装饰、页脚、布局和可编辑形状，不执行模板目录中的任何脚本。
+                   - 模板交付必须运行：`python3 <engine-root>/quality_check.py <output.pptx> --template <template.pptx>`。
+
+                LEGACY ENGINES（pptfast 不可用时的稳定回退）
+                - `python3 <engine-root>/generate_consensus.py <spec> <out>`：庄重学术/体制内风（藏蓝+金+红、微软雅黑、footer+页码），已用于医学共识 deck；医学科研类仍可用它。
+                - `python3 <engine-root>/generate_ppt.py`：兼容旧 JSON 规格的版式引擎；只有明确需要旧规格时使用。
+
+                CONFIGURATION — <engine-root>/config.json
+                - template: base .pptx template (default assets/base_template.pptx). Override per-run with `generate_ppt.py --template <file.pptx>`.
+                - logo: optional logo image auto-placed top-left on consensus decks (default assets/logo.png). Drop in the user's own institutional logo; clear/remove it to omit the logo.
+                - pexels_key: the Pexels API key (set here or via env PEXELS_API_KEY). Without a valid key, image_fetch falls back to loremflickr/picsum which return random/irrelevant images — always vision-verify fetched images match the keyword before using them.
+
+                SUPPLEMENTARY TOOLS (已装进 web profile，重启 GUI 后可用)
+                - @huiliyi37/dsh-office：pptx_create/pptx_read/pptx_edit + xlsx/pdf/docx 工具——读现有 PPT 结构、直接改文案、生成简单 deck。
+                - @deepseek-ai/dsh-mindmap：mm_generate 工具——把课件(PPT/PDF/Word)转成打印级 HTML 思维导图（复习用）。
+                - dshmarket（插件市场 UI）、dsh-find-plugin（agent 找插件）、dsh-hub（dsh.fish 注册表 hub 工具）。
+
+                INPUT FILES (ingest + OCR)
+                - python3 <engine-root>/ingest.py <file.pptx|pdf|png|jpg> — reads structure/text; scanned PDF/images auto-OCR (tesseract chi_sim+eng). Use to restyle/convert/extract an existing deck or PDF.
+
+                IMAGES (联网取图，默认国内优先)
+                - python3 <engine-root>/image_fetch.py <keyword> <out.jpg>
+                  - 默认走必应国内图片搜索（cn.bing.com，直连、无需 key，下载带 Referer 即可，能拿到苏宁/什么值得买/知乎等国内电商/图床的**原图**），国内题材贴切、不违和。
+                  - 必应失败 → 淘宝商品图搜索（s.taobao.com，白底实拍商品图，但偏小、作补充）。
+                  - 国内都找不到 → Pexels（外网、走 7897 代理；中文关键词自动翻英文，如 电动自行车→electric bicycle）。
+                  - 百度图片反爬（Forbid spider access）、1688 需 JS，均不可直连，别试。
+                  - 关键词用标准说法（如「电动自行车」而非「两轮电瓶车」）命中更准。
+                - 抓图后必须逐张 vision 核验「图对不对题」（尤其多义词/英文词），不对就换关键词重抓。学术体制内类禁止真人/伤口/AI插画；情感类可用牵手/剪影（无脸）。
+
+                MODIFY EXISTING PPT
+                - python3 <engine-root>/restyle.py <in.pptx> <out.pptx> — unify fonts/colors in place. For deeper changes: ingest → rebuild spec → regenerate.
+
+                SELF-CHECK — ALWAYS run, and iterate until satisfied (never skip)
+                - pptfast 首选：`bash <engine-root>/run_pptfast.sh audit <deck项目>` — 零 token 确定性几何审查（溢出/越界/低对比/重叠/内容截断/内容丢失），exit 0 才算通过；发现问题按「重组，不删除」修，再单独重跑 audit。启动器只使用已安装的 `@liustack/pptfast`，不会执行工作区脚本。
+                - 视觉审查：优先运行 `python3 <engine-root>/render_ppt.py <out.pptx> --outdir <工作区>/.render`（它会使用系统或用户态 LibreOffice，并生成 PDF/PNG），再用 `python3 <engine-root>/vision_check.py <工作区>/.render/page-01.png "<问题>"`。以 STRICT 评委逐页打分，盯「饱满度」「版式变化」「断行/单字成行」，修到每页 ≥8/10。
+                - 旧引擎 fallback：`python3 <engine-root>/check.py <out.pptx>`。
+                - Universal structure gate: `python3 <engine-root>/quality_check.py <out.pptx>`; template decks must add `--template <template.pptx>`. If this fails, delivery is forbidden. The check is independent of LibreOffice and catches text-only drafts and template drift.
+
+                ENGINEERING PITFALLS (踩过的坑，照做避免)
+                - 渲染产物**不要放 /tmp**（前后台命令间不共享，后台 job 读不到）——放工作区目录。
+                - 主模型 `deepseek-v4-pro` 看不了图（read_image 报 no image input）：逐页评审一律用 `vision_check.py`（走 `deepseek-v4-flash-vision-exp`）。
+                - `vision_check.py` 从 /tmp 或别的目录 import 会 `ModuleNotFoundError`：运行时 `cd <engine-root>` 或先 `sys.path.insert(0, 目录)`。
+                - 改 JSON/spec **用 Python json 读写**，别用 `sed -i`（之后 edit 工具会报 file changed since read）。
+                - 视觉模型会把 consulting 主题的 banner 黄色装饰条误判成「文字被遮挡」——几何结论以 `audit` 为准，vision 只做主观「留白/断行/单调」反馈。
+
+                MASTER-LEVEL QUALITY BAR (apply to every deck; learned from strict review)
+                - 必读「密度优先」配方（博采 CyberPPT/pptfast/社区开源 PPT skill 的实测结论）：<engine-root>/density-recipe.md。要点：pacing 一律 dense；每页 content 至少 3–4 个组件（paragraph+bullets+verdict_banner+image/kpi/comparison/steps）；每页设 background（满幅照片白蒙层 0.85–0.88 或暖纸渐变），禁止纯白底、禁止大面积默认白卡；每套 ≥5 种版式、相邻页不同；避开 image-lead-split（右侧空手机占位框）。
+                - No orphan characters: never let 标题/要点 end a line with a single 字 (理/率/工 etc.); shorten or re-break text to avoid it.
+                - Contrast: secondary text must be dark enough on light backgrounds. 满幅照片背景用白蒙层 ≥0.85 才保可读；表格/对比页去掉照片背景换暖纸渐变，保证表格文字最清晰。
+                - Clean background: calm single-tone / subtle-gradient / 满幅照片+蒙层；avoid busy decorative patterns that fight the content.
+                - Balance: if a card/column has little text, add content or an image, never leave a large empty "unfinished template" area; spread content top-to-bottom.
+                - Density & variety: 正文宁多勿少，卡片下半不留大块空白；混用 image-split/image-top/quote-stage/comparison/steps/kpi_cards/checklist，整份避免一种卡片。
+                - Data credibility: where numbers appear, add a source/scope note (or speaker note).
+                - Images: 抓图后逐张 vision 核验「图对不对题」；图片 crop+渐变+圆角；满幅 cover/section 图+渐变蒙层读作「设计过」而非「贴上去」。
+
+                WORKFLOW
+                1. Analyze the requirement; ask_user_question only for material gaps (topic/audience/purpose/pages/default 20/raw data). Do not over-ask.
+                2. Write a self-contained JSON spec under the workspace and reference only the user's actual files as assets. Do not execute workspace scripts.
+                3. 需要联网调研的主题（竞品分析/行业报告/市场调研）：先用 web_search 联网检索（**指定信源优先级**：优先官网、财报、权威媒体，避开自媒体二手信息），再收敛成大纲 + 逐页内容。
+                4. Draft outline + per-slide copy; encode as a spec JSON (pick engine + slide types to fit the content and keep layouts varied).
+                5. Generate to the user's requested output path. Do not overwrite the user's source assets or decks.
+                6. Run `quality_check.py` first, then engine audit/check, then render and visual review. Fix and iterate until all available checks pass. Run the repository helper `python3 <engine-root>/render_ppt.py <out.pptx> --outdir <workspace>/.render`; it searches the system and user-scoped renderer. If that helper fails, say rendering is unavailable, but do not claim visual review passed and do not use that limitation to bypass the structure gate.
+                7. Deliver the file path as inline code, with the exact checks performed.
+
+                CONTENT RULES
+                - Formal/academic tone when asked; conclusion-first for work reports; 3–5 points per page, short bullets; prefer the user's raw data (mark any invented data); write a speaker note per slide; default 20 pages; honor any user-provided 内容红线 (e.g. 不出现推荐编号/Level/同意率).
+                - 调研/分析类 deck 用「内容饱满」结构（学 TraeWork/WorkBuddy）：封面/目录 → 多维度对比总表（打分 + 标色突出）→ 逐对象深度档案（每家/每项一页 + 优劣势小结）→ 关键差异点用表格+色块 → 结论页提炼 3 条可执行建议 → 最后一页「一页速览」总结卡片（可直接截图转发）。这种结构天然密度高、不空。
+                - 关键格式要求（如「输出 PPTX，不要 HTML/图片」）单独放提示词末尾强调，别藏在正文里。
+                - 复杂 deck 可拆角色并行（调研/内容/设计/质检，学 WorkBuddy 的 OPC 一人公司），用 subagent 各自产出再合并。
+                - NEVER add AI 痕迹或无意义的声明/落款：严禁出现「仅供参考」「内容仅」「自动生成」「内部使用/内部教学/仅供内部」「作者声明」「无利益冲突」「演示生成」等跳脱词汇；封面与收尾页不要署工具名（如「PPT 助手」）；图片版权署名（Photo by/Pexels）如需可放 speaker note，绝不放在页面上。语言要像真人正式汇报，不出现「本指南由 AI/助手生成」之类表述。
+
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+
+          # ── shell ───────────────────────────────────────────────────────────────────
+
+          # `shell-env` stays in the HOST composition: `apps/cli/src/web.ts` injects it to
+          # publish `DSH_WEB_URL`/`DSH_WEB_MODE`, and a host row that injects a service is
+          # the criterion for host-plane ownership — injection resolves before any session
+          # exists, so there is no agent to key by. Behind a preset realm those variables
+          # never reached the model's shell at all. Both shell tools consume the host
+          # registry from here; their executors (`bash-sandbox`/`pwsh-sandbox`) are
+          # host-plane too.
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+
+          # ── filesystem ──────────────────────────────────────────────────────────────
+
+          # Both register into the host `tools` registry and provide nothing, so
+          # they need no realm. The `fs` service and its policy stay in the host.
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+
+          # ── background jobs ────────────────────────────────────────────────────────
+
+          # Only the model-facing controls. The task REGISTRY stays on the host plane:
+          # its producers sit outside any realm this file could put it in — `tool-bash`
+          # above resolves it with `ctx.get`, and an entry-local realm here is invisible
+          # to every sibling row, so `run_in_background` would answer "background jobs
+          # unavailable" while these controls sat in the catalog. The registry is keyed by
+          # owning agent anyway, so one host instance serves every session. What a preset
+          # chooses is whether its agent can collect and stop background work at all.
+          - id: tool-jobs
+            name: '@deepseek-ai/dsh-tool-jobs'
+
+          # ── skills ──────────────────────────────────────────────────────────────────
+
+          # The skill REGISTRY lives in the host composition and is layered per scope:
+          # these rows register into THIS preset's layer of it, so they need no realm.
+          # `skill-filesystem` contributes local-root discovery for agents on this preset, and
+          # `tool-skill` gives them the catalog and loader; the merged catalog also
+          # carries whatever the deployment registered globally (repository plugins).
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+
+          # ── goals ───────────────────────────────────────────────────────────────────
+
+          # Only the model-facing tool. The goal SERVICE, its session driver, and the
+          # `/goal` command stay on the host plane: the Gateway serves the goal domain as
+          # Remote endpoints whose receiver comes from a generated descriptor, so it
+          # resolves `goals` on the host and an entry-local realm here would hide it. The
+          # registry is keyed by session anyway, so one host instance serves every
+          # session. What a preset chooses is whether its agent can call the goal tool.
+          - id: tool-goal
+            name: '@deepseek-ai/dsh-tool-goal'
+
+          # ── plan mode ───────────────────────────────────────────────────────────────
+
+          # Plan state is per-agent by nature, so an entry-local realm is not a
+          # workaround here — it is the correct lifetime.
+          - id: planning
+            name: cordis:group
+            group: true
+            isolate:
+              planMode: true
+            config:
+              - id: plan-mode
+                name: '@deepseek-ai/dsh-plan-mode'
+                config:
+                  section: |
+                        You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                        Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                        The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                        Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                        Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                        When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+
+          # ── compaction ──────────────────────────────────────────────────────────────
+
+          # `compaction-basic` reads `toolResultPrune` through `ctx.get`, so the pruner must
+          # share this realm rather than sit outside it.
+          #
+          # `tokenMeter` is deliberately NOT in this realm: the meter stays on the HOST
+          # plane, and the rows here resolve that one instance. It takes no configuration,
+          # keys every fold by Session, and owns the context-meter projection units the
+          # browser reads for every session — behind a realm those units would come and go
+          # with whichever presets happen to be mounted. What a preset chooses is whether
+          # its agent compacts at all, which is `compaction-basic` below.
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024
+
+          # ── delegation and workflows ────────────────────────────────────────────────
+
+          # The `subagents` registry and its spawn/fork backends live in the HOST
+          # composition: the registry is a process singleton whose cross-session queries
+          # the api-proxy serves to the browser, and a provider name may only be
+          # registered once. This preset contributes the delegation TOOLS, which resolve
+          # that host registry.
+          #
+          # `workflows` is different — nothing outside an agent reads it — so every row
+          # that reaches it shares one entry-local realm here, and a consumer left
+          # outside would resolve a host registry this preset does not populate.
+          #
+          # `tool-subagent-report` is host-plane for the same reason as the registry,
+          # not because a preset may not want it: it registers a CONTINUABLE SETUP on
+          # that singleton rather than a tool this agent calls, and the setup list is
+          # not scope-aware — one copy per mounted preset means every child gets
+          # `report` registered once per live session, which throws on the second.
+          - id: delegation
+            name: cordis:group
+            group: true
+            isolate:
+              workflowEngine: true
+            config:
+              - id: tool-subagent-control
+                name: '@deepseek-ai/dsh-tool-subagent-control'
+
+              - id: tool-subagent-list-agents
+                name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+
+              - id: tool-subagent
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: spawn
+                  toolName: subagent
+                  backgroundMode: continuable
+
+              - id: tool-subagent-fork
+                name: '@deepseek-ai/dsh-tool-subagent'
+                config:
+                  provider: fork
+                  toolName: subagent_fork
+                  backgroundMode: continuable
+
+              # Production dsh does not install these optional providers. An opting-in
+              # Profile mounts each provider once on the host plane; copy this preset,
+              # then remove `disabled` from the matching tool row.
+              - id: tool-subagent-codex
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+                config:
+                  provider: codex
+                  toolName: subagent_codex
+                  backgroundMode: one-shot
+                  maxDepth: provider-managed
+
+              - id: tool-subagent-claude-code
+                name: '@deepseek-ai/dsh-tool-subagent'
+                disabled: true
+                config:
+                  provider: claude-code
+                  toolName: subagent_claude_code
+                  backgroundMode: one-shot
+                  maxDepth: provider-managed
+
+              - id: workflow-ptc
+                name: '@deepseek-ai/dsh-workflow-ptc'
+                config:
+                  provider: spawn
+
+              - id: tool-workflow
+                name: '@deepseek-ai/dsh-tool-workflow'
+
+              - id: tool-ralph
+                name: '@deepseek-ai/dsh-tool-ralph'
+                config:
+                  subagentProvider: spawn
+                  maxRounds: 64
+
+          # ── remaining model-facing rows ─────────────────────────────────────────────
+
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+
+          # The `web` service and its search provider stay in the host composition; only
+          # the model-facing tool is per-session.
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: false
+              searchTimeoutMs: 60000
