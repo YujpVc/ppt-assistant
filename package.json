@@ -33,7 +33,8 @@
     "requirements.txt",
     "LICENSE",
     "config.json",
-    "assets"
+    "assets",
+    "example.json"
   ],
   "dsh": {
     "bundle": {
