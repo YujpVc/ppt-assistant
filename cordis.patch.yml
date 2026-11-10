@@ -73,21 +73,28 @@
 
                 ACADEMIC & GRANT — 学术/基金 5 页先过评审问题，不搬论文小节
                 - 场景命中「国自然 / 基金 / 研究方案 / 特色创新 / 论文评审」时，主配方选 `grant`；标题用判断句，正文 ≥18pt；禁止把 `3.1.4.1`、`4.4` 这类论文编号带上屏。
-                - 5 页骨架：封面 → 总体路线（`architecture`，3 个框 + 底部共同验证）→ 机制 1（`process`）→ 机制 2（`cards`/`table` 只留一个判断）→ 创新与验证（`kpi_showcase`/`cards`）。每页只回答一个评审问题。
+                - 5 页骨架：封面 → 总体路线（`architecture`，技术蓝图 + 验证跑道）→ 机制 1（`sequence`）→ 机制 2（`pillars`）→ 创新与验证（`kpi_showcase`/`cards`）。每页只回答一个评审问题。
                 - 不要用 2×4 长句表把创新点全塞进去；拆成 3 个创新支柱，每个配 1–2 个验证指标。
                 - 「三条主线 / 四级验证」要落到图上：三条主线用 `architecture` 的三框，四级验证放底部一条证据带，不用正文复述。
+
+                DIAGRAM CRAFT — 架构图不是卡片墙
+                - 三步：先梳理主线和层级，再统一模块样式，最后加细节；不要先画框再想内容。
+                - 层级用同色系的实心 → 浅色/半透明 → 线框/细字递减，不要每个模块都填一个高饱和色。
+                - 一条明显主轴（`architecture` 的 01→02→03；`sequence` 的横向轨道），主副线用线宽/颜色区分；圆角卡片+阴影不是默认。
+                - `architecture`：深色主张带 + 大编号 + 细网格 + 证据回写环 + 验证跑道；`sequence`：之字形主轴；`pillars`：深色柱头 + 纸面正文。
+                - 参考 B 站「跟我学个P」三步法（BV1wg411W7qa）与「旁门左道」主线/层级（BV1iP4y1x7Se）；不照搬 2.5D/发光特效。
 
                 FIGURE CONTRACT — 图先能读，再谈好看
                 - 图片上版前先算有效字高：源图像素宽 / 版面英寸 = ppi；图中字高(px) / ppi × 72 = 实际 pt。图内文字低于 14pt，不允许直接上版。
                 - 论文总图/多机制拼图不要整张贴：4800px 的 fig18 塞进 7in，30px 字只剩约 3pt。这不是分辨率问题，是信息密度问题。
                 - 处理顺序：裁到一个机制 → 重画成 3–5 个可编辑框（`architecture`/`process`）→ 仍太密就拆页；一张图只承担一个判断。
-                - 架构页用 `architecture`：3 个框 + 箭头 + 底部共同验证条；标题、正文、图注全用真文本，不把截图当版面。
+                - 架构页用 `architecture`：深色主张带 + 大编号 + 细网格 + 证据回写环 + 验证跑道；标题、正文、图注全用真文本，不把截图当版面。
                 - 构建后跑 `figure_audit.py <pptx>`；P02/P04 这类 DENSE 行必须处理后再交付，不能因为 `quality_check` PASS 就放过。
 
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / cards / process / architecture / comparison / image_split / image_grid / table / chart / closing，
+                   - 内置版式：cover / cards / process / architecture / sequence / pillars / comparison / image_split / image_grid / table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
