@@ -4,3 +4,4 @@ pypdf>=5.0
 numpy>=1.26
 lxml>=4.9
 matplotlib>=3.7
+requests>=2.28

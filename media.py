@@ -387,3 +387,74 @@ def halftone(image: Image.Image, spacing: int = 7, angle: float = 0.0) -> Image.
             radius = max(0.4, (1 - value / 255) * spacing * 0.55)
             draw.ellipse([x - radius, y - radius, x + radius, y + radius], fill=(0, 0, 0))
     return out.rotate(-angle, expand=False)
+
+
+def drop_shadow(image: Image.Image, blur: float = 16.0, offset: tuple[int, int] = (0, 10),
+                opacity: float = 0.45) -> Image.Image:
+    """Bake a soft alpha shadow behind a cutout (renderer-independent)."""
+    base = image.convert("RGBA")
+    pad = int(blur * 1.8) + max(abs(offset[0]), abs(offset[1]))
+    canvas = Image.new("RGBA", (base.width + pad * 2, base.height + pad * 2), (0, 0, 0, 0))
+    alpha = Image.new("L", canvas.size, 0)
+    alpha.paste(base.getchannel("A"), (pad + offset[0], pad + offset[1]))
+    alpha = alpha.filter(ImageFilter.GaussianBlur(blur))
+    shade = Image.new("RGBA", canvas.size, (0, 0, 0, int(255 * float(np.clip(opacity, 0, 1)))))
+    shade.putalpha(alpha)
+    shade.alpha_composite(base, (pad, pad))
+    return shade
+
+
+def arch_mask(image: Image.Image, radius_ratio: float = 0.5,
+              supersample: int = 3) -> Image.Image:
+    """Crop into an arch/window: semicircular top, straight sides and base."""
+    base = image.convert("RGBA")
+    width, height = base.size
+    radius = int(min(width * radius_ratio, height * 0.9))
+    mask = Image.new("L", (width * supersample, height * supersample), 0)
+    draw = ImageDraw.Draw(mask)
+    w, h, r = width * supersample, height * supersample, radius * supersample
+    draw.pieslice([0, 0, w, 2 * r], 180, 360, fill=255)
+    draw.rectangle([0, r, w, h], fill=255)
+    mask = mask.resize((width, height), Image.LANCZOS)
+    base.putalpha(mask)
+    return base
+
+
+def circle_mask(image: Image.Image, supersample: int = 3) -> Image.Image:
+    base = image.convert("RGBA")
+    side = min(base.size)
+    square = ImageOps.fit(base, (side, side), method=Image.LANCZOS)
+    mask = Image.new("L", (side * supersample, side * supersample), 0)
+    ImageDraw.Draw(mask).ellipse([0, 0, side * supersample - 1, side * supersample - 1], fill=255)
+    mask = mask.resize((side, side), Image.LANCZOS)
+    square.putalpha(mask)
+    return square
+
+
+def glitch(image: Image.Image, shift: int = 4, scanlines: float = 0.10) -> Image.Image:
+    """Chromatic split + scanlines; use as a deliberate accent, not for photos of record."""
+    base = image.convert("RGB")
+    width, height = base.size
+    red, green, blue = base.split()
+
+    def offset(channel, dx: int, edge: int):
+        pad = abs(dx)
+        if not pad:
+            return channel
+        padded = ImageOps.expand(channel, border=pad, fill=edge)
+        start = 0 if dx > 0 else pad
+        return padded.crop((start, pad, start + width, pad + height))
+
+    base = Image.merge("RGB", (
+        offset(red, shift, red.getpixel((0, height // 2))),
+        green,
+        offset(blue, -shift, blue.getpixel((width - 1, height // 2))),
+    ))
+    if scanlines > 0:
+        overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
+        tone = (0, 0, 0, int(255 * float(np.clip(scanlines, 0, 1))))
+        for y in range(0, base.height, 4):
+            draw.line([(0, y), (base.width, y)], fill=tone)
+        base = Image.alpha_composite(base.convert("RGBA"), overlay).convert("RGB")
+    return base

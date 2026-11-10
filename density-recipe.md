@@ -50,6 +50,8 @@
 - 毛玻璃 `glass_overlay`：从当前背景裁一块模糊+提亮做面板，`glass_opacity` 0.14–0.24；数字仍是真文本。
 - 叠图 `image_stack`：2–4 张旋转错位 + 圆角阴影，单张可 `treatment: mono|duotone|halftone`。
 - 金句 `quote_stage` / 大数字 `kpi_showcase`：用来换气，数字必须带标签和单位。
+- 透明抠图 `cutout_statement`：`--transparent` 生图 → 裁透明边 → 烘焙阴影 → 主体压版面；`image_annotated` 用原生圆点/引线/标签；`image_arch` 拱形裁切。
+- 质感：`mono/duotone/halftone/glitch`；glitch 只做点缀。生成图必须过 `image_check.py`（≥7、无文字/水印）。
 - 细节：`**关键词**` 主色高亮、`meta.transition` 页面切换、`sections/section_no` 进度点。
 - 克制：一套最多 2–3 页炫技，相邻页不连续堆，炫技页必须有真信息。
 

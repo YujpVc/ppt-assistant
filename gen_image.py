@@ -59,6 +59,31 @@ class ImageError(RuntimeError):
     pass
 
 
+def install_proxy() -> str | None:
+    """Route this one process through a SOCKS proxy when asked.
+
+    The workspace can lose direct egress to the image host while an SSH tunnel
+    is available (``ssh -D``). PySocks is optional: when it is missing the
+    command keeps using the normal route instead of failing unexpectedly.
+    """
+    proxy = (os.environ.get("PPT_IMAGE_PROXY") or os.environ.get("ALL_PROXY") or "")
+    if not proxy.startswith("socks"):
+        return None
+    try:
+        import socket
+        import socks
+        from urllib.parse import urlsplit
+    except ImportError:
+        return None
+    parsed = urlsplit(proxy)
+    if not parsed.hostname:
+        return None
+    socks.set_default_proxy(socks.SOCKS5, parsed.hostname, parsed.port or 1080,
+                            rdns=proxy.startswith("socks5h"))
+    socket.socket = socks.socksocket
+    return proxy
+
+
 def config_candidates() -> list[Path]:
     home = Path.home()
     return [
@@ -107,13 +132,44 @@ def ssl_context():
     return None
 
 
+def _proxy_map():
+    proxy = (os.environ.get("PPT_IMAGE_PROXY") or os.environ.get("HTTPS_PROXY")
+             or os.environ.get("https_proxy"))
+    if proxy and proxy.startswith(("socks", "http")):
+        return {"http": proxy, "https": proxy}
+    return None
+
+
 def api_call(url: str, key: str, body: bytes, content_type: str,
              timeout: int) -> dict[str, Any]:
-    request = urllib.request.Request(url, data=body, method="POST", headers={
+    headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": content_type,
         "User-Agent": "ppt-assistant-image/1.0",
-    })
+    }
+    try:
+        import requests
+    except ImportError:
+        requests = None
+    if requests is not None:
+        try:
+            response = requests.post(url, data=body, headers=headers,
+                                     timeout=timeout, proxies=_proxy_map())
+        except requests.RequestException as error:
+            raise ImageError(f"无法连接图片服务: {error}") from error
+        if response.status_code >= 400:
+            detail = response.text
+            try:
+                detail = response.json().get("error", detail)
+            except ValueError:
+                pass
+            raise ImageError(f"接口返回 {response.status_code}: {str(detail)[:600]}")
+        try:
+            return response.json()
+        except ValueError as error:
+            raise ImageError("接口返回的不是 JSON") from error
+
+    request = urllib.request.Request(url, data=body, method="POST", headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=timeout, context=ssl_context()) as response:
             return json.loads(response.read().decode("utf-8"))
@@ -131,6 +187,19 @@ def api_call(url: str, key: str, body: bytes, content_type: str,
 
 
 def download(url: str, timeout: int = 120) -> bytes:
+    try:
+        import requests
+    except ImportError:
+        requests = None
+    if requests is not None:
+        try:
+            response = requests.get(url, timeout=timeout, proxies=_proxy_map(),
+                                    headers={"User-Agent": "ppt-assistant-image/1.0"})
+        except requests.RequestException as error:
+            raise ImageError(f"图片下载失败: {error}") from error
+        if response.status_code >= 400:
+            raise ImageError(f"图片下载失败: HTTP {response.status_code}")
+        return response.content
     request = urllib.request.Request(url, headers={"User-Agent": "ppt-assistant-image/1.0"})
     try:
         with urllib.request.urlopen(request, timeout=timeout, context=ssl_context()) as response:
@@ -200,6 +269,8 @@ def main() -> int:
     parser.add_argument("--model", default=os.environ.get("PPT_IMAGE_MODEL", DEFAULT_MODELS[0]))
     parser.add_argument("--ref", action="append", default=[], help="reference image (repeatable, max 4)")
     parser.add_argument("--mask", help="optional mask image for edits")
+    parser.add_argument("--transparent", action="store_true",
+                        help="request a transparent background (PNG cutout)")
     parser.add_argument("--n", type=int, default=1, help="number of images (1-4)")
     parser.add_argument("--timeout", type=int, default=480)
     parser.add_argument("--retries", type=int, default=1)
@@ -207,6 +278,7 @@ def main() -> int:
     parser.add_argument("--no-meta", action="store_true", help="skip the .json sidecar")
     parser.add_argument("--dry-run", action="store_true", help="validate inputs and print the request only")
     args = parser.parse_args()
+    install_proxy()
 
     if args.prompt_file:
         prompt = Path(args.prompt_file).expanduser().read_text(encoding="utf-8").strip()
@@ -246,14 +318,18 @@ def main() -> int:
                 files = [("image", *read_reference(Path(path).expanduser())) for path in args.ref]
                 if args.mask:
                     files.append(("mask", *read_reference(Path(args.mask).expanduser())))
-                body, content_type = multipart(
-                    {"model": args.model, "prompt": prompt, "size": size, "n": str(args.n)},
-                    files)
+                fields = {"model": args.model, "prompt": prompt, "size": size,
+                          "n": str(args.n)}
+                if args.transparent:
+                    fields.update({"background": "transparent", "output_format": "png"})
+                body, content_type = multipart(fields, files)
                 result = api_call(f"{base}/images/edits", key, body, content_type, args.timeout)
             else:
-                body = json.dumps({"model": args.model, "prompt": prompt, "size": size,
-                                   "n": args.n, "response_format": "url"},
-                                  ensure_ascii=False).encode("utf-8")
+                payload = {"model": args.model, "prompt": prompt, "size": size,
+                           "n": args.n, "response_format": "url"}
+                if args.transparent:
+                    payload.update({"background": "transparent", "output_format": "png"})
+                body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
                 result = api_call(f"{base}/images/generations", key, body,
                                   "application/json", args.timeout)
             break
@@ -297,6 +373,7 @@ def main() -> int:
         "seconds": elapsed,
         "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:16],
         "prompt_chars": len(prompt),
+        "transparent": bool(args.transparent),
     }
     if not args.no_meta:
         meta_path = Path(saved[0]).with_suffix(".json")
