@@ -94,7 +94,12 @@ def validate(spec: dict, base: Path) -> None:
             raise ValueError(f"slide {index}: title is required")
         if layout in {"cards", "process", "comparison", "image_grid"}:
             items = slide.get("items")
-            minimum, maximum = (2, 2) if layout == "comparison" else (2, 4)
+            if layout == "comparison":
+                minimum, maximum = 2, 2
+            elif layout == "process":
+                minimum, maximum = 2, 5
+            else:
+                minimum, maximum = 2, 4
             if not isinstance(items, list) or not minimum <= len(items) <= maximum:
                 raise ValueError(f"slide {index}: items requires {minimum}–{maximum} entries")
             if any(not isinstance(item, dict) or not item.get("title") for item in items):
@@ -807,9 +812,10 @@ class DeckBuilder:
                 self.text(slide, str(stat["note"]), x, top + 1.58, span - 0.6,
                           0.6, 11, muted)
             share = stat.get("share")
-            self.box(slide, x, top + 2.28, span - 0.8, 0.05, "2A3E55" if dark else "D9E2EE")
             if isinstance(share, (int, float)):
                 ratio = min(1.0, max(0.0, float(share)))
+                self.box(slide, x, top + 2.28, span - 0.8, 0.05,
+                         "2A3E55" if dark else "D9E2EE")
                 self.box(slide, x, top + 2.28,
                          max(0.2, (span - 0.8) * ratio), 0.05, accent)
             if index:
@@ -1000,7 +1006,7 @@ class DeckBuilder:
         # Four-card pages intentionally use compact cards.  Keep their body
         # copy readable while leaving enough vertical room for two wrapped
         # Chinese lines instead of allowing the strict capacity check to fail.
-        body_size = 15 if body_height < 1.0 else 20
+        body_size = 15 if body_height < 1.0 or w < 2.4 else 20
         # Un-numbered cards centre short copy; a numbered step card keeps the
         # body tight under its title so the number stays part of the header.
         body_y = y + offset + (1.0 if numbered else 0.85)
@@ -1101,6 +1107,12 @@ class DeckBuilder:
             headers, rows = page["headers"], page["rows"]
             table = slide.shapes.add_table(len(rows) + 1, len(headers), Inches(.6), Inches(2.1),
                                            Inches(12.1), Inches(4.4)).table
+            weights = [max([len(str(headers[index]))] +
+                           [len(str(row[index])) for row in rows])
+                       for index in range(len(headers))]
+            total = sum(weights) or 1
+            for index, weight in enumerate(weights):
+                table.columns[index].width = Inches(12.1 * weight / total)
             for row_index, row in enumerate([headers] + rows):
                 for column_index, value in enumerate(row):
                     cell = table.cell(row_index, column_index)
