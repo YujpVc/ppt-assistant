@@ -70,7 +70,7 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | `image_statement` | 满幅图 + 巨型字艺 + 结论标题 | `image` `art_text` `art` `title` |
 | `split_diagonal` | 两张图斜切对照 | `images:[a,b]` `seam` `labels` |
 | `glass_overlay` | 满幅图 + 毛玻璃面板 + 数字 | `image` `glass_opacity` `stats` |
-| `image_stack` | 2–4 张旋转错位叠图 | `items[{image,treatment}]` |
+| `heat_bars` | 甘特时间轴：阶段按时长累加，颜色映射火力 | `items[{title,body,fire,level,minutes,time}]` |
 | `quote_stage` | 金句页：大引号 + 网格底 | `quote` `by` |
 | `kpi_showcase` | 大数字墙 + 进度条 | `stats[{value,label,note,share}]` |
 | `cutout_statement` | 透明抠图主体压住版面/标题 | `image` `side` `height` `flip` |

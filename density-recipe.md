@@ -49,8 +49,8 @@
 - 章节页 `section_number`：巨型数字（渐变/空心/图片填字）+ mesh 底 + 网格 + 进度点；一页只放一处巨字。
 - 满幅 `image_statement`：照片 + 巨型字艺（`art`）+ 结论标题；字艺放文字侧、透明度 0.14–0.22，别压主体。
 - 斜切 `split_diagonal`：两张图斜接 + 主色割线，适合「两种方案/两种光」对照。
+- 时间轴 `heat_bars`：阶段按 `minutes` 累加成甘特条，`fire/level` 映射颜色；比普通表格更适合讲顺序与时长。
 - 毛玻璃 `glass_overlay`：从当前背景裁一块模糊+提亮做面板，`glass_opacity` 0.14–0.24；数字仍是真文本。
-- 叠图 `image_stack`：2–4 张旋转错位 + 圆角阴影，单张可 `treatment: mono|duotone|halftone`。
 - 金句 `quote_stage` / 大数字 `kpi_showcase`：用来换气，数字必须带标签和单位。
 - 透明抠图 `cutout_statement`：`--transparent` 生图 → 裁透明边 → 烘焙阴影 → 主体压版面；`image_annotated` 用原生圆点/引线/标签；`image_arch` 拱形裁切。
 - 质感：`mono/duotone/halftone/glitch`；glitch 只做点缀。生成图必须过 `image_check.py`（≥7、无文字/水印）。
