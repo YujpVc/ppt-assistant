@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "chart",
-           "image_split", "image_grid", "image_triptych", "image_panel", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -206,7 +206,7 @@ def validate(spec: dict, base: Path) -> None:
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: {layout} requires an image")
             assets = [slide]
-        if layout == "image_panel":
+        if layout in {"image_panel", "image_panel_strip"}:
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: image_panel requires an image")
             if slide.get("side", "left") not in {"left", "right"}:
@@ -218,6 +218,8 @@ def validate(spec: dict, base: Path) -> None:
             if stats and (not isinstance(stats, list) or len(stats) > 3):
                 raise ValueError(f"slide {index}: image_panel stats must be <= 3")
             assets = [slide]
+            if slide.get("inset"):
+                assets.append({"image": slide["inset"]})
         if layout == "image_annotated":
             points = slide.get("points")
             if not isinstance(points, list) or not 2 <= len(points) <= 4:
@@ -1271,10 +1273,10 @@ class DeckBuilder:
                           30, "accent", True, font=self.head_font)
                 self.text(slide, item["title"], sx, y + .50, bw, .40,
                           title_size, "text", True)
-                self.text(slide, item["body"], sx, y + .94, bw, .62,
-                          body_size, "muted")
+                self.text(slide, item["body"], sx, y + .94, bw, .78,
+                          11.5 if n == 4 else body_size, "muted")
                 if item.get("foot"):
-                    self.text(slide, item["foot"], sx, y + 1.60, bw, .22,
+                    self.text(slide, item["foot"], sx, y + 1.80, bw, .22,
                               foot_size, "accent", True)
             tri = slide.shapes.add_shape(
                 MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(12.32),
@@ -1301,8 +1303,9 @@ class DeckBuilder:
                           1.40 if n == 4 else 2.10,
                           12.5 if n == 4 else 14, "muted")
                 if item.get("foot"):
-                    self.text(slide, item["foot"], x + .18, 4.82 if n == 4 else 5.62,
-                              width - .36, 8.5 if n == 4 else 9, "accent", True)
+                    self.text(slide, item["foot"], x + .18,
+                              4.82 if n == 4 else 5.62, width - .36, .25,
+                              8.5 if n == 4 else 9, "accent", True)
                 self.box(slide, x, 6.02, width, .012, "D8C6B4")
             if page.get("bottom"):
                 if n == 4:
@@ -1312,46 +1315,65 @@ class DeckBuilder:
                 else:
                     self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
                               13, "muted")
-        elif layout == "image_panel":
+        elif layout in {"image_panel", "image_panel_strip"}:
             side = page.get("side", "left")
-            image_w = 6.50
+            dense = bool(page.get("dense"))
+            image_w = 5.15 if dense else 6.50
             panel_w = 13.333 - image_w
             if side == "left":
                 image_x, panel_x = 0.0, image_w
             else:
                 image_x, panel_x = panel_w, 0.0
             self.artwork(slide, page["image"], image_x, 0, image_w, 7.5, radius=0.0)
+            if page.get("inset"):
+                iw, ih = 1.95, 1.32
+                ix = image_x + image_w - iw - .24
+                iy = 7.50 - ih - .24
+                self.box(slide, ix - .06, iy - .06, iw + .12, ih + .12, "FBF6EE")
+                self.artwork(slide, page["inset"], ix, iy, iw, ih, radius=0.0)
             self.box(slide, panel_x, 0, panel_w, 7.5, "FBF6EE")
             seam = panel_x if side == "left" else image_x - .012
             self.box(slide, seam, 0, .012, 7.5, "B04A2A")
-            px = panel_x + .55
-            pw = panel_w - 1.10
+            px = panel_x + .52
+            pw = panel_w - 1.04
             if page.get("kicker"):
                 self.text(slide, str(page["kicker"]).upper(), px, .62, pw, .24,
                           9.5, "accent", True)
             self.text(slide, page["title"], px, 1.02, pw, 1.40,
-                      page.get("title_size", 28), "text", True,
+                      page.get("title_size", 26 if dense else 28), "text", True,
                       font=self.head_font)
             cursor = 2.42
             if page.get("body"):
-                self.text(slide, page["body"], px, cursor, pw, .92, 15, "muted")
-                cursor += 1.05
+                self.text(slide, page["body"], px, cursor, pw,
+                          .92 if not dense else 1.02,
+                          14 if dense else 15, "muted")
+                cursor += 1.05 if not dense else 1.18
             for index, bullet in enumerate(page.get("bullets") or []):
-                y = cursor + index * .62
-                self.box(slide, px, y + .12, .10, .10, "accent")
-                self.text(slide, bullet, px + .26, y, pw - .26, .50, 13.5, "text")
+                step = .40 if dense else .62
+                y = cursor + index * step
+                self.box(slide, px, y + .10, .09, .09, "accent")
+                self.text(slide, bullet, px + .24, y, pw - .24,
+                          .34 if dense else .50, 12.0 if dense else 13.5, "text")
             stats = page.get("stats") or []
             if stats:
-                stat_y = 5.88
+                stat_y = 5.58 if dense else 5.88
                 span = pw / len(stats)
                 for index, stat in enumerate(stats):
                     sx = px + index * span
                     self.text(slide, str(stat.get("value", "")), sx, stat_y,
-                              span - .2, .52, 24, "accent", True, font=self.head_font)
-                    self.text(slide, str(stat.get("label", "")), sx, stat_y + .50,
-                              span - .2, .34, 9.5, "muted")
+                              span - .2, .48, 21 if dense else 24, "accent", True,
+                              font=self.head_font)
+                    self.text(slide, str(stat.get("label", "")), sx, stat_y + .46,
+                              span - .2, .32, 9, "muted")
                     if index:
-                        self.box(slide, sx - .18, stat_y, .008, .76, "D8C6B4")
+                        self.box(slide, sx - .16, stat_y, .008, .72, "D8C6B4")
+            if page.get("strip"):
+                self.box(slide, px, 6.35, pw, .010, "D8C6B4")
+                labels = page["strip"][:3]
+                span = pw / len(labels)
+                for index, label in enumerate(labels):
+                    self.text(slide, label, px + index * span, 6.45,
+                              span - .12, .30, 8.5, "muted")
             if page.get("source"):
                 self.text(slide, page["source"], px, 6.95, pw, .24, 8.5, "muted")
         elif layout == "image_split":
