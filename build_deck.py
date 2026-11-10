@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
-           "image_split", "image_grid", "image_triptych", "ingredient_board", "ingredient_split", "state_triptych", "prep_stove", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -128,6 +128,20 @@ def validate(spec: dict, base: Path) -> None:
                 if not isinstance(item, dict) or not item.get("label") or not item.get("value"):
                     raise ValueError(f"slide {index}: every ingredient item requires label and value")
             assets = [slide]
+        if layout == "state_gallery":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: state_gallery requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("image") for item in items):
+                raise ValueError(f"slide {index}: every state item requires an image")
+            assets = items
+        if layout == "state_band":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: state_band requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("image") for item in items):
+                raise ValueError(f"slide {index}: every state item requires an image")
+            assets = items
         if layout == "state_triptych":
             items = slide.get("items")
             if not isinstance(items, list) or len(items) != 3:
@@ -1233,6 +1247,49 @@ class DeckBuilder:
                 self.text(slide, item["value"], 1.65, y - .02, 3.55, .30, 9.5, "F4E9DC")
             if page.get("source"):
                 self.text(slide, page["source"], .65, 6.52, 4.55, .52, 8.5, "C9B3A0")
+        elif layout == "state_gallery":
+            items = page["items"]
+            self.box(slide, .60, 2.00, 7.15, 4.45, "B04A2A")
+            self.artwork(slide, items[0]["image"], .70, 2.10, 6.95, 4.25, radius=0.0)
+            self.text(slide, "01", .60, 6.48, .7, .40, 22, "accent", True)
+            self.text(slide, items[0]["title"], 1.28, 6.50, 6.4, .32, 17, "text", True)
+            self.text(slide, items[0]["body"], 1.28, 6.78, 6.4, .22, 11, "muted")
+            for idx, (y, item) in enumerate(((2.00, items[1]), (4.52, items[2])), start=1):
+                self.box(slide, 8.00, y, 4.70, 2.00, "B04A2A")
+                self.artwork(slide, item["image"], 8.06, y + .06, 4.58, 1.88, radius=0.0)
+                self.text(slide, f"0{idx+1}", 8.00, y + 2.04, .55, .28, 13, "accent", True)
+                self.text(slide, item["title"], 8.52, y + 2.02, 4.0, .26, 12.5, "text", True)
+                self.text(slide, item["body"], 8.52, y + 2.26, 4.0, .18, 8.8, "muted")
+        elif layout == "state_band":
+            items = page["items"]
+            self.box(slide, 0, 0, 13.333, 1.18, "FBF6EE")
+            self.text(slide, page["title"], .6, .28, 12.1, .52, 26, "text", True,
+                      font=self.head_font)
+            if page.get("subtitle"):
+                self.text(slide, page["subtitle"], .6, .82, 12.1, .26, 13, "muted")
+            top, bottom = 1.18, 7.02
+            h2 = (bottom - top - .04) / 2
+            self.artwork(slide, items[0]["image"], 0, top, 8.2, bottom - top, radius=0.0)
+            self.artwork(slide, items[1]["image"], 8.2, top, 5.133, h2, radius=0.0)
+            self.artwork(slide, items[2]["image"], 8.2, top + h2 + .04, 5.133, h2, radius=0.0)
+            # left caption band
+            self.box(slide, 0, 6.02, 8.2, 1.0, "FBF6EE")
+            self.box(slide, 0, 6.02, 8.2, .018, "B04A2A")
+            self.text(slide, "01", .55, 6.12, .7, .38, 20, "accent", True)
+            self.text(slide, items[0]["title"], 1.28, 6.12, 6.5, .34, 18, "text", True)
+            self.text(slide, items[0]["body"], 1.28, 6.46, 6.5, .26, 11.5, "muted")
+            # right top band
+            self.box(slide, 8.2, 3.30, 5.133, .68, "FBF6EE")
+            self.box(slide, 8.2, 3.30, 5.133, .016, "B04A2A")
+            self.text(slide, "02", 8.42, 3.38, .55, .28, 13, "accent", True)
+            self.text(slide, items[1]["title"], 9.02, 3.36, 4.0, .26, 12.5, "text", True)
+            self.text(slide, items[1]["body"], 9.02, 3.60, 4.0, .22, 9.5, "muted")
+            # right bottom band
+            self.box(slide, 8.2, 6.34, 5.133, .68, "FBF6EE")
+            self.box(slide, 8.2, 6.34, 5.133, .016, "B04A2A")
+            self.text(slide, "03", 8.42, 6.42, .55, .28, 13, "accent", True)
+            self.text(slide, items[2]["title"], 9.02, 6.40, 4.0, .26, 12.5, "text", True)
+            self.text(slide, items[2]["body"], 9.02, 6.64, 4.0, .22, 9.5, "muted")
         elif layout == "state_triptych":
             items = page["items"]
             self.box(slide, 0, 0, 13.333, 1.32, "FBF6EE")
