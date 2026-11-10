@@ -1,11 +1,13 @@
 {
   "name": "@rx01334/ppt-assistant",
-  "version": "1.4.0",
-  "description": "PPT 助手 agent preset for DeepSeek Harness: plan-first editable decks with GPT imagery, transparent cutouts, annotated/arch/glass layouts, giant type art, brand palettes, and a verified scoped-edit ledger.",
+  "version": "1.5.0",
+  "description": "PPT 助手 agent preset for DeepSeek Harness: a visual-director workflow with six style recipes, plan-first editable decks, GPT imagery/vision QC, showcase layouts, and a verified scoped-edit ledger.",
   "license": "MIT",
   "private": false,
   "type": "module",
   "files": [
+    "contact_sheet.py",
+    "style-recipes.md",
     "image_check.py",
     "run_py.sh",
     "deck_baseline.py",

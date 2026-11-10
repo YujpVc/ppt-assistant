@@ -4,7 +4,7 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.4.0/ppt-assistant-1.4.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.4.0/ppt-assistant-1.4.0.tgz`。
+在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.5.0/ppt-assistant-1.5.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.5.0/ppt-assistant-1.5.0.tgz`。
 
 包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
@@ -74,6 +74,18 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 - `art` 可选 `gradient`（主色渐变）、`outline`（空心描边）、`image`（用图片填字，需配 `image`，自动加主色细描边）；字艺是装饰位图，正文仍是真文本。
 - `**关键词**` 在主色里高亮；`meta.transition: fade|push|morph` 加页面切换；`treatment: mono|duotone|halftone|glitch` 做印刷/故障质感。
 - 一套 deck 最多 2–3 页炫技，相邻页不连续堆特效。
+- 路线选择：默认输出可编辑 PPTX；已有母版走模板模式；明确要 Google Slides 时说明本环境无原生导出；浏览器动画/交互是核心时才走单文件 HTML（需自备 layouts/styles，HTML 不在 quality_check 覆盖范围）。
+
+## 视觉总监与风格配方
+
+- 先明确受众、要促成的判断、内容类型、场景、情绪；再写七行风格简报：三个形容词 / 一个设计张力 / 密度 / 配色逻辑 / 字体逻辑 / 图片行为 / 空间节奏。
+- 从 `<engine-root>/style-recipes.md` 选一套主配方：`consulting` `formal` `civic` `artfair` `editorial` `history`；需要时最多加一套辅助，声明主/辅。把 `meta.recipe` 记进 spec。
+- 配方 tokens 落进 `meta`：`theme` `accent` `colors` `font` `titleFont`。`titleFont` 可让标题单独用衬线（如 `Noto Serif CJK SC`），正文仍用 `font`。
+- 评审顺序：先 `contact_sheet.py` 出缩略图总览，看节奏/密度/重复，再抽封面、最密页、特殊媒体页、结束页全尺寸看。
+
+```bash
+bash run_py.sh contact_sheet.py <工作区>/.render --out contact.png --cols 4 --labels
+```
 
 ## 页计划与风格
 
@@ -99,7 +111,7 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 ## 打包
 
 ```bash
-npm pack          # 生成 @rx01334/ppt-assistant-1.4.0.tgz
+npm pack          # 生成 @rx01334/ppt-assistant-1.5.0.tgz
 ```
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。
