@@ -94,8 +94,8 @@ def validate(spec: dict, base: Path) -> None:
             raise ValueError(f"slide {index}: title is required")
         if layout in {"sequence", "pillars"}:
             items = slide.get("items")
-            if not isinstance(items, list) or len(items) != 3:
-                raise ValueError(f"slide {index}: {layout} requires exactly 3 items")
+            if not isinstance(items, list) or not 3 <= len(items) <= 4:
+                raise ValueError(f"slide {index}: {layout} requires 3–4 items")
             if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
                    for item in items):
                 raise ValueError(f"slide {index}: every {layout} item requires title and body")
@@ -212,7 +212,7 @@ def validate(spec: dict, base: Path) -> None:
             if slide.get("side", "left") not in {"left", "right"}:
                 raise ValueError(f"slide {index}: image_panel side must be left or right")
             bullets = slide.get("bullets") or []
-            if not isinstance(bullets, list) or not 2 <= len(bullets) <= 4:
+            if not isinstance(bullets, list) or not 2 <= len(bullets) <= 5:
                 raise ValueError(f"slide {index}: image_panel requires 2–4 bullets")
             stats = slide.get("stats") or []
             if stats and (not isinstance(stats, list) or len(stats) > 3):
@@ -508,7 +508,7 @@ class DeckBuilder:
         light = ink == "light"
         title_color = "FFFFFF" if light else self.colors["text"]
         muted = "CBD9EA" if light else self.colors["muted"]
-        accent = "7FE3F0" if light else self.colors["accent"]
+        accent = self._accent_on(light)
         if side == "bottom":
             x, y, w = 0.95, 3.35, 11.45
         elif side == "right":
@@ -546,7 +546,7 @@ class DeckBuilder:
         title_color = "FFFFFF" if light else self.colors["text"]
         body_color = "DCE8F6" if light else self.colors["text"]
         muted = "AFC3DA" if light else self.colors["muted"]
-        accent = "7FE3F0" if light else self.colors["accent"]
+        accent = self._accent_on(light)
         x = 0.95 if side != "right" else 7.05
         w = 5.35
         top = 1.55
@@ -609,6 +609,12 @@ class DeckBuilder:
         a, b = media.parse_color(first), media.parse_color(second)
         return media.to_hex(tuple(int(round(x * (1 - ratio) + y * ratio))
                                   for x, y in zip(a, b)))
+    def _accent_on(self, light_text: bool) -> str:
+        """Accent that survives on a dark image/theme without fixed cyan."""
+        if light_text:
+            return self._blend(self.colors["accent"], "FFFFFF", .42)
+        return self.colors["accent"]
+
 
     def _mesh_colors(self) -> list[str]:
         accent, background = self.colors["accent"], self.colors["bg"]
@@ -685,7 +691,7 @@ class DeckBuilder:
                       opacity=page.get("art_opacity", 0.92))
         text_color = self.colors["text"]
         muted = "AFC3DA" if dark else self.colors["muted"]
-        accent = "7FE3F0" if dark else self.colors["accent"]
+        accent = self._accent_on(dark)
         x, w = 6.55, 6.05
         kicker = str(page.get("kicker", f"SECTION {number}")).upper()
         self.text(slide, kicker, x, 1.42, w, 0.3, 12, accent, True, tracking=180)
@@ -725,7 +731,7 @@ class DeckBuilder:
         text_light = ink == "light"
         title_color = "FFFFFF" if text_light else self.colors["text"]
         muted = "CBD9EA" if text_light else self.colors["muted"]
-        accent = "7FE3F0" if text_light else self.colors["accent"]
+        accent = self._accent_on(text_light)
         left_text = side == "left"
         if side == "bottom":
             x, w, y = 0.95, 9.6, 3.55
@@ -792,7 +798,7 @@ class DeckBuilder:
         self.add_full(slide, background)
         x, w = 0.95, 8.6
         if page.get("kicker"):
-            self.text(slide, str(page["kicker"]).upper(), x, 4.02, w, 0.3, 12, "7FE3F0", True)
+            self.text(slide, str(page["kicker"]).upper(), x, 4.02, w, 0.3, 12, self._accent_on(True), True)
         self.text(slide, page["title"], x, 4.35, w, 1.5,
                   page.get("title_size", 38), "FFFFFF", True)
         if page.get("body"):
@@ -800,7 +806,7 @@ class DeckBuilder:
         labels = page.get("labels") or []
         for index, label in enumerate(labels[:2]):
             lx = 0.95 if index == 0 else 10.0
-            self.box(slide, lx, 6.55, 0.34, 0.05, "7FE3F0")
+            self.box(slide, lx, 6.55, 0.34, 0.05, self._accent_on(True))
             self.text(slide, label, lx + 0.48, 6.42, 2.9, 0.3, 12, "FFFFFF", True)
 
     def glass_slide(self, slide, page):
@@ -823,7 +829,7 @@ class DeckBuilder:
         title_color = "FFFFFF" if light else self.colors["text"]
         body_color = "DCE8F6" if light else self.colors["text"]
         muted = "AFC3DA" if light else self.colors["muted"]
-        accent = "7FE3F0" if light else self.colors["accent"]
+        accent = self._accent_on(light)
         tx, tw = x + 0.38, w - 0.76
         self.box(slide, tx, y + 0.34, 0.55, 0.045, accent)
         cursor = y + 0.55
@@ -884,7 +890,7 @@ class DeckBuilder:
         self.add_full(slide, background)
         text_color = self.colors["text"]
         muted = "AFC3DA" if dark else self.colors["muted"]
-        accent = "7FE3F0" if dark else self.colors["accent"]
+        accent = self._accent_on(dark)
         self.text(slide, str(page.get("kicker", "")).upper(), 0.95, 1.0, 6.0, 0.3,
                   12, accent, True, tracking=160)
         self.text(slide, page["title"], 0.95, 1.4, 10.6, 1.2,
@@ -968,7 +974,7 @@ class DeckBuilder:
         text_light = True
         title_color = "FFFFFF"
         muted = "B9CCE2"
-        accent = "7FE3F0"
+        accent = self._accent_on(True)
         tx, tw = (0.95, 8.55) if side == "right" else (4.55, 7.9)
         if page.get("kicker"):
             self.text(slide, str(page["kicker"]).upper(), tx, 1.45, tw, 0.3, 12, accent,
@@ -992,7 +998,7 @@ class DeckBuilder:
                                        veil=0.14)
         self.add_full(slide, background)
         self.text(slide, str(page.get("kicker", "")).upper(), 0.95, 0.85, 6.0, 0.3,
-                  12, "7FE3F0", True, tracking=160)
+                  12, self._accent_on(True), True, tracking=160)
         self.text(slide, page["title"], 0.95, 1.2, 9.0, 0.9, 30, "FFFFFF", True,
                   font=self.head_font)
         accent = self.colors["accent"]
@@ -1038,7 +1044,7 @@ class DeckBuilder:
         self._add_picture(slide, picture, 0.75, 0.72, 5.15, 6.3)
         text_color = self.colors["text"]
         muted = "AFC3DA" if dark else self.colors["muted"]
-        accent = "7FE3F0" if dark else self.colors["accent"]
+        accent = self._accent_on(dark)
         x, w = 6.65, 5.95
         if page.get("kicker"):
             self.text(slide, str(page["kicker"]).upper(), x, 1.55, w, 0.3, 12, accent, True,
@@ -1242,26 +1248,34 @@ class DeckBuilder:
             items = page["items"]
             rail_y = 4.08
             self.box(slide, 1.00, rail_y, 11.35, .012, "B04A2A")
-            positions = [2.20, 6.60, 11.00]
+            n = len(items)
+            if n == 4:
+                positions = [1.70, 4.82, 7.94, 11.06]
+                bw, half = 2.95, 1.42
+                title_size, body_size, foot_size = 16.5, 12.5, 8.5
+            else:
+                positions = [2.20, 6.60, 11.00]
+                bw, half = 3.25, 1.55
+                title_size, body_size, foot_size = 18, 13, 9
             for index, item in enumerate(items):
                 x = positions[index]
                 above = index % 2 == 0
                 self.box(slide, x - .08, rail_y - .08, .16, .16, "B04A2A")
                 self.box(slide, x - .006, 3.58 if above else rail_y,
                          .012, .50, "B04A2A")
-                sx = x - 1.55
+                sx = x - half
                 y = 1.95 if above else 4.55
                 self.box(slide, sx - .15, y, .03,
                          1.62 if above else 1.75, "B04A2A")
                 self.text(slide, f"{index + 1:02d}", sx, y - .04, .75, .58,
                           30, "accent", True, font=self.head_font)
-                self.text(slide, item["title"], sx, y + .50, 3.25, .40,
-                          18, "text", True)
-                self.text(slide, item["body"], sx, y + .94, 3.25, .62,
-                          13, "muted")
+                self.text(slide, item["title"], sx, y + .50, bw, .40,
+                          title_size, "text", True)
+                self.text(slide, item["body"], sx, y + .94, bw, .62,
+                          body_size, "muted")
                 if item.get("foot"):
-                    self.text(slide, item["foot"], sx, y + 1.60, 3.25, .22,
-                              9, "accent", True)
+                    self.text(slide, item["foot"], sx, y + 1.60, bw, .22,
+                              foot_size, "accent", True)
             tri = slide.shapes.add_shape(
                 MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(12.32),
                 Inches(rail_y - .10), Inches(.18), Inches(.22))
@@ -1274,22 +1288,30 @@ class DeckBuilder:
                           12, "muted")
         elif layout == "pillars":
             items = page["items"]
+            n = len(items)
+            width = (12.10 - .25 * (n - 1)) / n
             for index, item in enumerate(items):
-                x = .60 + index * 4.10
-                self.box(slide, x, 2.15, 3.55, 1.05, "1C1B19")
+                x = .60 + index * (width + .25)
+                self.box(slide, x, 2.15, width, 1.05, "1C1B19")
                 self.text(slide, f"{index + 1:02d}", x + .18, 2.28, .55, .22,
                           9, "B98A63", True)
-                self.text(slide, item["title"], x + .18, 2.56, 3.18, .55,
-                          18, "FFFFFF", True)
-                self.text(slide, item["body"], x + .18, 3.42, 3.18, 2.10,
-                          14, "muted")
+                self.text(slide, item["title"], x + .18, 2.56, width - .36, .55,
+                          16 if n == 4 else 18, "FFFFFF", True)
+                self.text(slide, item["body"], x + .18, 3.42, width - .36,
+                          1.40 if n == 4 else 2.10,
+                          12.5 if n == 4 else 14, "muted")
                 if item.get("foot"):
-                    self.text(slide, item["foot"], x + .18, 5.62, 3.18, .25,
-                              9, "accent", True)
-                self.box(slide, x, 6.02, 3.55, .012, "D8C6B4")
+                    self.text(slide, item["foot"], x + .18, 4.82 if n == 4 else 5.62,
+                              width - .36, 8.5 if n == 4 else 9, "accent", True)
+                self.box(slide, x, 6.02, width, .012, "D8C6B4")
             if page.get("bottom"):
-                self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
-                          13, "muted")
+                if n == 4:
+                    self.box(slide, .65, 4.82, .8, .03, "accent")
+                    self.text(slide, page["bottom"], .65, 5.05, 11.8, .80,
+                              18, "text", True, font=self.head_font)
+                else:
+                    self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
+                              13, "muted")
         elif layout == "image_panel":
             side = page.get("side", "left")
             image_w = 6.50
