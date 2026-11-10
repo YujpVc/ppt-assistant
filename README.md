@@ -4,7 +4,7 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.2.0/ppt-assistant-1.2.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.2.0/ppt-assistant-1.2.0.tgz`。
+在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.3.0/ppt-assistant-1.3.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.3.0/ppt-assistant-1.3.0.tgz`。
 
 包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
@@ -53,6 +53,22 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 
 `image_split` / `image_grid` 也升级为满格裁切 + 圆角 + 软阴影。所有图片一律 cover 裁切、不留白边，蒙版颜色由图片暗部采样，文字区按页型自动避让。
 
+## 炫技版式
+
+| 版式 | 用途 | 关键字段 |
+| --- | --- | --- |
+| `section_number` | 章节页：巨型数字 + 网格底 + 进度点 | `number` `title` `items` `sections` `section_no` `art` |
+| `image_statement` | 满幅图 + 巨型字艺 + 结论标题 | `image` `art_text` `art` `title` |
+| `split_diagonal` | 两张图斜切对照 | `images:[a,b]` `seam` `labels` |
+| `glass_overlay` | 满幅图 + 毛玻璃面板 + 数字 | `image` `glass_opacity` `stats` |
+| `image_stack` | 2–4 张旋转错位叠图 | `items[{image,treatment}]` |
+| `quote_stage` | 金句页：大引号 + 网格底 | `quote` `by` |
+| `kpi_showcase` | 大数字墙 + 进度条 | `stats[{value,label,note,share}]` |
+
+- `art` 可选 `gradient`（主色渐变）、`outline`（空心描边）、`image`（用图片填字，需配 `image`，自动加主色细描边）；字艺是装饰位图，正文仍是真文本。
+- `**关键词**` 在主色里高亮；`meta.transition: fade|push|morph` 加页面切换；`treatment: mono|duotone|halftone` 做印刷质感。
+- 一套 deck 最多 2–3 页炫技，相邻页不连续堆特效。
+
 ## 页计划与风格
 
 - 动笔前先写四行 style brief：用途与受众、气质、主色（只选一个）、图像风格。主色写进 `meta.accent`；需要换底色、面板或文字色时用 `meta.colors` 覆盖 `bg/panel/text/muted/accent`（6 位 hex）。
@@ -77,7 +93,7 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 ## 打包
 
 ```bash
-npm pack          # 生成 @rx01334/ppt-assistant-1.2.0.tgz
+npm pack          # 生成 @rx01334/ppt-assistant-1.3.0.tgz
 ```
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。

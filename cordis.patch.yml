@@ -65,11 +65,15 @@
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
                    - 内置版式：cover / cards / process / comparison / image_split / image_grid / table / chart / closing，
-                     以及图片版式：image_hero（满幅图 + 渐变蒙版 + 大标题，字段 image/kicker/title/body/scrim/ink）、
-                     image_overlay（满幅图 + 单侧渐变 + 正文/要点/数字，字段 image/side/title/body/bullets/stats）、
-                     image_wall（2–4 张瀑布流错位，字段 items[{image,title,body}]）。
+                     图片版式：image_hero / image_overlay / image_wall；
+                     炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
+                     split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、
+                     image_stack（2–4 张旋转错位叠图）、quote_stage（网格底 + 金句）、kpi_showcase（大数字墙）。
+                   - 通用增强：`**强调**` 会把词染成主色；`meta.transition` 可设 fade/push/morph；
+                     `art: gradient|outline|image` 控制巨型数字的填充方式（image 用当前图片填字）。
                    - chart 使用 PowerPoint 原生可编辑图表；文本容量、素材存在性和布局字段在生成前校验。
                    - `meta.colors` 可覆盖 `bg/panel/text/muted/accent`（6 位 hex），`meta.accent` 是主色简写；整套只用一个重点色。
+                   - `**关键词**` 在标题/正文里自动切成主色加粗 run；`meta.transition: fade|push|morph` 加页面切换。
                    - 每页可给稳定 `id`（P01、P02…），引擎写进 slide name；改稿台账按 id 对齐，页序变了也不丢身份。
 
                 TEMPLATE ENGINE — 用户提供模板时的正式路径
@@ -104,6 +108,18 @@
                   - 百度图片反爬（Forbid spider access）、1688 需 JS，均不可直连，别试。
                   - 关键词用标准说法（如「电动自行车」而非「两轮电瓶车」）命中更准。
                 - 抓图后必须逐张 vision 核验「图对不对题」（尤其多义词/英文词），不对就换关键词重抓。学术体制内类禁止真人/伤口/AI插画；情感类可用牵手/剪影（无脸）。
+
+                SHOWCASE MOVES — 高级质感手段（可用，但要克制）
+                - 背景：section_number / quote_stage / kpi_showcase 自带 mesh 渐变 + 噪点 + 网格/点阵；不用再叠照片。
+                - 字艺：section_number 的巨型数字可 `art: gradient`（主色渐变）、`outline`（空心描边）、`image`（用图片填字，配 `image`，自动加主色细描边）。
+                  字艺是装饰位图，语义文本仍用真文本框；一页只放一处巨型字。
+                - 毛玻璃：glass_overlay 会从当前背景裁一块做模糊+提亮，形成磨砂面板；`glass_opacity` 0.14–0.24。
+                - 斜切：split_diagonal 用两张图斜接，`seam` 设割线颜色；适合「两种方案/两种光」对照。
+                - 叠图：image_stack 2–4 张，自动旋转错位 + 圆角阴影；单张可加 `treatment: mono|duotone|halftone` 做印刷质感。
+                - 大字墙：kpi_showcase 2–3 个大数字 + 分隔线 + `share` 细进度条；数字必须是真文本。
+                - 金句：quote_stage 只放一句话，配大引号、细线和网格底，用来换气。
+                - 细节：`**关键词**` 在主色里高亮；`sections`/`section_no` 在章节页画进度点；`meta.transition: fade` 让整套切换更顺。
+                - 克制：一套 deck 最多 2–3 页「炫技」，相邻页不要连续堆特效；每个炫技页都要有真实信息，不能只有氛围。
 
                 IMAGE GENERATION — 用户已授权 GPT 生图（uuapi / gpt-image），不必每张先问
                 - 生成器：`bash <engine-root>/run_py.sh gen_image.py --prompt-file <p.txt> --out <workspace>/assets/hero.png --size landscape --model gpt-image-2.5-flare`
@@ -167,6 +183,7 @@
                 - Speaker script: every slide's notes carry a 2–4 sentence spoken script with the transition to the next page; export with `bash <engine-root>/run_py.sh speaker_notes.py export <deck.pptx> <script.md>` when the user wants a script.
                 - Data credibility: where numbers appear, add a source/scope note (or speaker note); never round a number for visual neatness; keep units and labels next to the value.
                 - One message per page: the title is the conclusion; if a page needs two titles, it is two pages.
+                - Showpiece discipline: at most 2–3 showcase pages (giant type, glass, diagonal, KPI wall); every one must carry a real message, never decoration alone.
                 - Color discipline: one accent across the deck; adjacent hues for categories, lightness for hierarchy; no second saturated accent.
                 - Images: 抓图/生图后逐张 vision 核验「图对不对题」；图片必须 crop-to-fill + 渐变/圆角/阴影之一；封面与章节页用满幅出血+渐变蒙版，读到的是「设计过」而不是「贴上去」。
 
@@ -178,7 +195,7 @@
 
                 WORKFLOW
                 1. Analyze the requirement; ask_user_question only for material gaps (topic/audience/purpose/pages/default 20/raw data). Do not over-ask.
-                2. 先写 STYLE BRIEF 四行 + 页计划表（页 / 结论句 / 证据 / 视觉类型 / 来源），再动 spec；标题不是结论就先改标题。
+                2. 先写 STYLE BRIEF 四行 + 页计划表（页 / 结论句 / 证据 / 视觉类型 / 来源），再动 spec；标题不是结论就先改标题。封面/章节/金句/数字页优先考虑炫技版式，但一套最多 2–3 页。
                 3. 需要联网调研的主题（竞品分析/行业报告/市场调研）：先用 web_search 联网检索（**指定信源优先级**：优先官网、财报、权威媒体，避开自媒体二手信息），再收敛成大纲 + 逐页内容。
                 4. Write a self-contained JSON spec under the workspace and reference only the user's actual files as assets. Do not execute workspace scripts. (pick engine + slide types to fit the content and keep layouts varied).
                 4b. 需要氛围/概念图时，先跑 `gen_image.py` 并把每张图看过一遍，再写进 spec；图片放工作区 assets/，提示词留在同名 .json sidecar。没有合适的图就换版式，不要拿错图硬塞。
