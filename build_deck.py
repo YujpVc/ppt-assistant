@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
+LAYOUTS = {"cover", "cards", "process", "architecture", "comparison", "table", "chart",
            "image_split", "image_grid", "image_triptych", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -92,6 +92,15 @@ def validate(spec: dict, base: Path) -> None:
         layout = slide["layout"]
         if not slide.get("title") and layout not in {"cover", "closing"}:
             raise ValueError(f"slide {index}: title is required")
+        if layout == "architecture":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: architecture requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
+                   for item in items):
+                raise ValueError(f"slide {index}: each architecture item requires title and body")
+            if slide.get("bottom") and not isinstance(slide["bottom"], str):
+                raise ValueError(f"slide {index}: architecture bottom must be text")
         if layout in {"cards", "process", "comparison", "image_grid"}:
             items = slide.get("items")
             if layout == "comparison":
@@ -1147,6 +1156,30 @@ class DeckBuilder:
                     shape.fill.solid()
                     shape.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
                     shape.line.fill.background()
+        elif layout == "architecture":
+            items = page["items"]
+            for index, item in enumerate(items):
+                x = .60 + index * 4.10
+                self.box(slide, x, 2.15, 3.55, 2.20, rounded=True)
+                self.box(slide, x, 2.15, 3.55, .04, "B04A2A")
+                self.text(slide, f"{index + 1:02d}", x + .18, 2.30, .55, .28,
+                          12, "accent", True)
+                self.text(slide, item["title"], x + .18, 2.62, 3.20, .38,
+                          18, "text", True)
+                self.text(slide, item["body"], x + .18, 3.04, 3.20, 1.18,
+                          14.5, "muted")
+                if index < 2:
+                    shape = slide.shapes.add_shape(
+                        MSO_SHAPE.CHEVRON, Inches(x + 3.62), Inches(3.02),
+                        Inches(.30), Inches(.44))
+                    shape.fill.solid()
+                    shape.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
+                    shape.line.fill.background()
+            if page.get("bottom"):
+                self.box(slide, .60, 4.72, 12.10, 1.35, "F1E7DB")
+                self.text(slide, page.get("bottom_title", "共同验证"), .90, 4.95,
+                          2.15, .30, 13, "accent", True)
+                self.text(slide, page["bottom"], 3.15, 4.90, 9.20, .95, 14, "text")
         elif layout == "image_split":
             self.artwork(slide, page["image"], .6, 2.05, 7.1, 4.55,
                          radius=.05, shadow=True)
