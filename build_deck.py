@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
-           "image_split", "image_grid", "image_triptych", "ingredient_board", "prep_stove", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "ingredient_board", "ingredient_split", "state_triptych", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -118,6 +118,23 @@ def validate(spec: dict, base: Path) -> None:
                     raise ValueError(f"slide {index}: heat_bars fire must be 大火/中火/小火/微火")
                 if not isinstance(item.get("minutes"), (int, float)) or float(item["minutes"]) <= 0:
                     raise ValueError(f"slide {index}: heat_bars minutes must be positive")
+        if layout == "ingredient_split":
+            if not slide.get("image"):
+                raise ValueError(f"slide {index}: ingredient_split requires an image")
+            items = slide.get("items")
+            if not isinstance(items, list) or not 3 <= len(items) <= 6:
+                raise ValueError(f"slide {index}: ingredient_split requires 3–6 items")
+            for item in items:
+                if not isinstance(item, dict) or not item.get("label") or not item.get("value"):
+                    raise ValueError(f"slide {index}: every ingredient item requires label and value")
+            assets = [slide]
+        if layout == "state_triptych":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: state_triptych requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("image") for item in items):
+                raise ValueError(f"slide {index}: every state item requires an image")
+            assets = items
         if layout == "ingredient_board":
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: ingredient_board requires an image")
@@ -1189,6 +1206,61 @@ class DeckBuilder:
                 self.text(slide, item["body"], body_x, y + .43, body_w, .26, 10, "muted")
             if page.get("source"):
                 self.text(slide, page["source"], .6, 6.70, 11.8, .20, 9, "muted")
+        elif layout == "ingredient_split":
+            items = page["items"]
+            self.artwork(slide, page["image"], 5.55, 0, 7.78, 7.5, radius=0.0)
+            self.box(slide, 0, 0, 5.55, 7.5, "140C08")
+            self.box(slide, 5.54, 0, .012, 7.5, "B98A63")
+            self.text(slide, page.get("kicker", "备料 / MISE EN PLACE"), .65, .55,
+                      4.5, .22, 9, "B98A63", True)
+            self.text(slide, "800", .60, 1.00, 2.6, 1.16, 64, "FFFFFF", True,
+                      font=self.head_font)
+            self.text(slide, "g", 3.08, 1.48, .5, .4, 20, "B98A63", True)
+            self.text(slide, page.get("fish_label", "草鱼（或黑鱼 750 g）"), .65, 2.18,
+                      4.35, .25, 9.5, "E8D5C4")
+            self.text(slide, "300", .60, 2.54, 2.6, 1.16, 64, "FFFFFF", True,
+                      font=self.head_font)
+            self.text(slide, "g", 3.08, 3.02, .5, .4, 20, "B98A63", True)
+            self.text(slide, page.get("acid_label", "老坛酸菜"), .65, 3.72,
+                      4.35, .25, 9.5, "E8D5C4")
+            self.text(slide, "8 : 3", 4.15, 1.10, 1.1, .34, 18, "B98A63", True,
+                      align=PP_ALIGN.RIGHT)
+            self.text(slide, "鱼 : 酸菜", 4.15, 1.42, 1.1, .20, 8, "E8D5C4",
+                      align=PP_ALIGN.RIGHT)
+            for i, item in enumerate(items):
+                y = 4.05 + i * .38
+                self.text(slide, item["label"], .65, y, .95, .22, 8, "B98A63", True)
+                self.text(slide, item["value"], 1.65, y - .02, 3.55, .30, 9.5, "F4E9DC")
+            if page.get("source"):
+                self.text(slide, page["source"], .65, 6.52, 4.55, .52, 8.5, "C9B3A0")
+        elif layout == "state_triptych":
+            items = page["items"]
+            self.box(slide, 0, 0, 13.333, 1.32, "FBF6EE")
+            self.text(slide, page["title"], .6, .36, 12.1, .55, 28, "text", True,
+                      font=self.head_font)
+            if page.get("subtitle"):
+                self.text(slide, page["subtitle"], .6, .94, 12.1, .28, 14, "muted")
+            top = 1.32
+            bottom = 7.02
+            h = (bottom - top) / 2 - .02
+            scrim = {"direction": "bottom", "color": "120B08", "start": .42,
+                     "end": .98, "opacity": .88}
+            self.artwork(slide, items[0]["image"], 0, top, 8.2, bottom - top,
+                         radius=0.0, scrim=scrim)
+            self.artwork(slide, items[1]["image"], 8.2, top, 5.133, h,
+                         radius=0.0, scrim=scrim)
+            self.artwork(slide, items[2]["image"], 8.2, top + h + .04, 5.133, h,
+                         radius=0.0, scrim=scrim)
+            self.text(slide, "01", .55, top + .28, .8, .44, 24, "FFFFFF", True)
+            self.text(slide, items[0]["title"], .55, bottom - 1.00, 7.0, .38, 20, "FFFFFF", True)
+            self.text(slide, items[0]["body"], .55, bottom - .58, 7.0, .24, 12, "FFF6EC")
+            self.text(slide, "02", 8.65, top + .26, .8, .36, 20, "FFFFFF", True)
+            self.text(slide, items[1]["title"], 8.65, top + h - .60, 4.3, .28, 14, "FFFFFF", True)
+            self.text(slide, items[1]["body"], 8.65, top + h - .32, 4.3, .22, 10.5, "FFF6EC")
+            y2 = top + h + .04
+            self.text(slide, "03", 8.65, y2 + .26, .8, .36, 20, "FFFFFF", True)
+            self.text(slide, items[2]["title"], 8.65, bottom - .66, 4.3, .28, 14, "FFFFFF", True)
+            self.text(slide, items[2]["body"], 8.65, bottom - .38, 4.3, .22, 10.5, "FFF6EC")
         elif layout == "ingredient_board":
             items = page["items"]
             top = 2.02
@@ -1292,7 +1364,8 @@ class DeckBuilder:
                         for run in paragraph.runs:
                             run._r.get_or_add_rPr().append(run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
         if page.get("source") and layout not in {"glass_overlay", "kpi_showcase",
-                                                 "image_annotated", "ingredient_board"}:
+                                                 "image_annotated", "ingredient_board",
+                                                 "ingredient_split"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
