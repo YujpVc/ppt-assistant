@@ -60,6 +60,7 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | `image_overlay` | 满幅图 + 单侧渐变面板，放正文、要点、数字 | `image` `side` `title` `body` `bullets` `stats` |
 | `image_wall` | 2–4 张瀑布流错位，圆角 + 细阴影 | `items[{image,title,body}]` |
 | `image_triptych` | 三图一主两辅：左大图 + 右双叠 | `items[3]{image,title,body}` |
+| `image_panel` | 一侧整幅图 + 一侧实心纸面：标题/正文/3 要点/2 指标 | `image` `side` `title` `body` `bullets` `stats` `source` |
 
 `image_split` / `image_grid` 也升级为满格裁切 + 圆角 + 软阴影。所有图片一律 cover 裁切、不留白边，蒙版颜色由图片暗部采样，文字区按页型自动避让。
 

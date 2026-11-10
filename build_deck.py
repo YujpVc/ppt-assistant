@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "chart",
-           "image_split", "image_grid", "image_triptych", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "image_panel", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -205,6 +205,18 @@ def validate(spec: dict, base: Path) -> None:
         if layout in {"cutout_statement", "image_arch"}:
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: {layout} requires an image")
+            assets = [slide]
+        if layout == "image_panel":
+            if not slide.get("image"):
+                raise ValueError(f"slide {index}: image_panel requires an image")
+            if slide.get("side", "left") not in {"left", "right"}:
+                raise ValueError(f"slide {index}: image_panel side must be left or right")
+            bullets = slide.get("bullets") or []
+            if not isinstance(bullets, list) or not 2 <= len(bullets) <= 4:
+                raise ValueError(f"slide {index}: image_panel requires 2–4 bullets")
+            stats = slide.get("stats") or []
+            if stats and (not isinstance(stats, list) or len(stats) > 3):
+                raise ValueError(f"slide {index}: image_panel stats must be <= 3")
             assets = [slide]
         if layout == "image_annotated":
             points = slide.get("points")
@@ -1278,6 +1290,48 @@ class DeckBuilder:
             if page.get("bottom"):
                 self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
                           13, "muted")
+        elif layout == "image_panel":
+            side = page.get("side", "left")
+            image_w = 6.50
+            panel_w = 13.333 - image_w
+            if side == "left":
+                image_x, panel_x = 0.0, image_w
+            else:
+                image_x, panel_x = panel_w, 0.0
+            self.artwork(slide, page["image"], image_x, 0, image_w, 7.5, radius=0.0)
+            self.box(slide, panel_x, 0, panel_w, 7.5, "FBF6EE")
+            seam = panel_x if side == "left" else image_x - .012
+            self.box(slide, seam, 0, .012, 7.5, "B04A2A")
+            px = panel_x + .55
+            pw = panel_w - 1.10
+            if page.get("kicker"):
+                self.text(slide, str(page["kicker"]).upper(), px, .62, pw, .24,
+                          9.5, "accent", True)
+            self.text(slide, page["title"], px, 1.02, pw, 1.40,
+                      page.get("title_size", 28), "text", True,
+                      font=self.head_font)
+            cursor = 2.42
+            if page.get("body"):
+                self.text(slide, page["body"], px, cursor, pw, .92, 15, "muted")
+                cursor += 1.05
+            for index, bullet in enumerate(page.get("bullets") or []):
+                y = cursor + index * .62
+                self.box(slide, px, y + .12, .10, .10, "accent")
+                self.text(slide, bullet, px + .26, y, pw - .26, .50, 13.5, "text")
+            stats = page.get("stats") or []
+            if stats:
+                stat_y = 5.88
+                span = pw / len(stats)
+                for index, stat in enumerate(stats):
+                    sx = px + index * span
+                    self.text(slide, str(stat.get("value", "")), sx, stat_y,
+                              span - .2, .52, 24, "accent", True, font=self.head_font)
+                    self.text(slide, str(stat.get("label", "")), sx, stat_y + .50,
+                              span - .2, .34, 9.5, "muted")
+                    if index:
+                        self.box(slide, sx - .18, stat_y, .008, .76, "D8C6B4")
+            if page.get("source"):
+                self.text(slide, page["source"], px, 6.95, pw, .24, 8.5, "muted")
         elif layout == "image_split":
             self.artwork(slide, page["image"], .6, 2.05, 7.1, 4.55,
                          radius=.05, shadow=True)
@@ -1553,7 +1607,7 @@ class DeckBuilder:
                             run._r.get_or_add_rPr().append(run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
         if page.get("source") and layout not in {"glass_overlay", "kpi_showcase",
                                                  "image_annotated", "ingredient_board",
-                                                 "ingredient_split"}:
+                                                 "ingredient_split", "image_panel"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
