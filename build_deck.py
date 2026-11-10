@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "cards", "process", "architecture", "comparison", "table", "chart",
+LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "chart",
            "image_split", "image_grid", "image_triptych", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -92,6 +92,13 @@ def validate(spec: dict, base: Path) -> None:
         layout = slide["layout"]
         if not slide.get("title") and layout not in {"cover", "closing"}:
             raise ValueError(f"slide {index}: title is required")
+        if layout in {"sequence", "pillars"}:
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: {layout} requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
+                   for item in items):
+                raise ValueError(f"slide {index}: every {layout} item requires title and body")
         if layout == "architecture":
             items = slide.get("items")
             if not isinstance(items, list) or len(items) != 3:
@@ -1158,28 +1165,119 @@ class DeckBuilder:
                     shape.line.fill.background()
         elif layout == "architecture":
             items = page["items"]
+            # Ink band: the page's one-sentence argument, not another title.
+            self.box(slide, 0, 1.32, 13.333, .78, "1C1B19")
+            self.text(slide, page.get("band", "三段不是三个模块，是一条状态链"),
+                      .65, 1.47, 9.7, .36, 18, "FFFFFF", True,
+                      font=self.head_font)
+            self.text(slide, "01—03 / 同一任务状态", 9.55, 1.55, 3.15, .22,
+                      8, "B98A63", True, align=PP_ALIGN.RIGHT)
+            # Technical canvas: a single field, not three cards.
+            self.box(slide, .45, 2.05, 12.43, 3.35, "F1E7DB")
+            for x in (4.45, 8.55):
+                self.box(slide, x, 2.25, .008, 3.0, "D8C6B4")
+            for y in (2.25, 5.25):
+                self.box(slide, .60, y, 12.1, .008, "D8C6B4")
+            for index, item in enumerate(items):
+                x = .65 + index * 4.10
+                self.box(slide, x, 2.25, 3.40, .030,
+                         "B04A2A" if index == 0 else "D8C6B4")
+                self.text(slide, item.get("kicker", f"STAGE {index + 1:02d}"),
+                          x, 2.36, 1.80, .18, 7.5, "muted", True)
+                self.text(slide, f"{index + 1:02d}", x, 2.52, 1.0, .76,
+                          40, "accent", True, font=self.head_font)
+                self.text(slide, item["title"], x, 3.30, 3.35, .50,
+                          19, "text", True)
+                self.text(slide, item["body"], x, 3.84, 3.35, 1.15,
+                          13, "muted")
+                if index < 2:
+                    y = 3.52
+                    self.box(slide, x + 3.45, y, .50, .008, "B04A2A")
+                    tri = slide.shapes.add_shape(
+                        MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(x + 3.88),
+                        Inches(y - .10), Inches(.18), Inches(.22))
+                    tri.rotation = 90
+                    tri.fill.solid()
+                    tri.fill.fore_color.rgb = RGBColor.from_string("B04A2A")
+                    tri.line.fill.background()
+            # Evidence write-back loop: a thin, technical return path.
+            loop_y = 5.30
+            self.box(slide, 10.55, 5.02, .008, .28, "B04A2A")
+            self.box(slide, 2.35, loop_y, 8.20, .008, "B04A2A")
+            self.box(slide, 2.35, 5.02, .008, .28, "B04A2A")
+            tri = slide.shapes.add_shape(
+                MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(2.27), Inches(4.94),
+                Inches(.18), Inches(.22))
+            tri.fill.solid()
+            tri.fill.fore_color.rgb = RGBColor.from_string("B04A2A")
+            tri.line.fill.background()
+            self.text(slide, page.get("loop", "执行证据回写计划"),
+                      4.95, 5.06, 4.2, .22, 8, "muted")
+            # Validation runway: four grades, one dark strip.
+            self.box(slide, .60, 5.58, 12.10, 1.06, "1C1B19")
+            self.text(slide, page.get("bottom_title", "验证递进"),
+                      .85, 5.72, 1.55, .26, 11, "B98A63", True)
+            steps = page.get("steps", ["单项操作", "跨设备流程",
+                                       "完整培养周期", "人工对照"])
+            for index, step in enumerate(steps[:4]):
+                x = 2.55 + index * 2.45
+                self.text(slide, f"0{index + 1}", x, 5.70, .38, .18,
+                          8, "B98A63", True)
+                self.text(slide, step, x, 5.90, 2.20, .24, 11, "FFFFFF")
+                if index:
+                    self.box(slide, x - .16, 5.70, .006, .62, "5A4A40")
+        elif layout == "sequence":
+            items = page["items"]
+            rail_y = 4.08
+            self.box(slide, 1.00, rail_y, 11.35, .012, "B04A2A")
+            positions = [2.20, 6.60, 11.00]
+            for index, item in enumerate(items):
+                x = positions[index]
+                above = index % 2 == 0
+                self.box(slide, x - .08, rail_y - .08, .16, .16, "B04A2A")
+                self.box(slide, x - .006, 3.58 if above else rail_y,
+                         .012, .50, "B04A2A")
+                sx = x - 1.55
+                y = 1.95 if above else 4.55
+                self.box(slide, sx - .15, y, .03,
+                         1.62 if above else 1.75, "B04A2A")
+                self.text(slide, f"{index + 1:02d}", sx, y - .04, .75, .58,
+                          30, "accent", True, font=self.head_font)
+                self.text(slide, item["title"], sx, y + .50, 3.25, .40,
+                          18, "text", True)
+                self.text(slide, item["body"], sx, y + .94, 3.25, .62,
+                          13, "muted")
+                if item.get("foot"):
+                    self.text(slide, item["foot"], sx, y + 1.60, 3.25, .22,
+                              9, "accent", True)
+            tri = slide.shapes.add_shape(
+                MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(12.32),
+                Inches(rail_y - .10), Inches(.18), Inches(.22))
+            tri.rotation = 90
+            tri.fill.solid()
+            tri.fill.fore_color.rgb = RGBColor.from_string("B04A2A")
+            tri.line.fill.background()
+            if page.get("bottom"):
+                self.text(slide, page["bottom"], .65, 6.55, 12.0, .30,
+                          12, "muted")
+        elif layout == "pillars":
+            items = page["items"]
             for index, item in enumerate(items):
                 x = .60 + index * 4.10
-                self.box(slide, x, 2.15, 3.55, 2.20, rounded=True)
-                self.box(slide, x, 2.15, 3.55, .04, "B04A2A")
-                self.text(slide, f"{index + 1:02d}", x + .18, 2.30, .55, .28,
-                          12, "accent", True)
-                self.text(slide, item["title"], x + .18, 2.62, 3.20, .38,
-                          18, "text", True)
-                self.text(slide, item["body"], x + .18, 3.04, 3.20, 1.18,
-                          14.5, "muted")
-                if index < 2:
-                    shape = slide.shapes.add_shape(
-                        MSO_SHAPE.CHEVRON, Inches(x + 3.62), Inches(3.02),
-                        Inches(.30), Inches(.44))
-                    shape.fill.solid()
-                    shape.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
-                    shape.line.fill.background()
+                self.box(slide, x, 2.15, 3.55, 1.05, "1C1B19")
+                self.text(slide, f"{index + 1:02d}", x + .18, 2.28, .55, .22,
+                          9, "B98A63", True)
+                self.text(slide, item["title"], x + .18, 2.56, 3.18, .55,
+                          18, "FFFFFF", True)
+                self.text(slide, item["body"], x + .18, 3.42, 3.18, 2.10,
+                          14, "muted")
+                if item.get("foot"):
+                    self.text(slide, item["foot"], x + .18, 5.62, 3.18, .25,
+                              9, "accent", True)
+                self.box(slide, x, 6.02, 3.55, .012, "D8C6B4")
             if page.get("bottom"):
-                self.box(slide, .60, 4.72, 12.10, 1.35, "F1E7DB")
-                self.text(slide, page.get("bottom_title", "共同验证"), .90, 4.95,
-                          2.15, .30, 13, "accent", True)
-                self.text(slide, page["bottom"], 3.15, 4.90, 9.20, .95, 14, "text")
+                self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
+                          13, "muted")
         elif layout == "image_split":
             self.artwork(slide, page["image"], .6, 2.05, 7.1, 4.55,
                          radius=.05, shadow=True)

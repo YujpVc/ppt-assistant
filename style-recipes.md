@@ -151,7 +151,8 @@
 - **配色逻辑**：象牙纸底 60% + 墨色 30% + 单一深青强调 10%；不要 corporate 蓝（如 #2F5597）；红只标风险/待确认
 - **字体逻辑**：标题思源宋体 30–36，正文思源黑体 18–22；不要用 12pt 正文撑信息量
 - **图片行为**：论文总图/架构图不整张贴——先裁到一个机制，或重画成 3–5 个可编辑框；截图必须有 ≥14pt 的标注；实拍只做证据，不做装饰
-- **空间节奏**：封面 → 科学问题/总体路线（architecture）→ 机制 1（process）→ 机制 2（cards/table）→ 创新与验证（kpi/cards）；不要目录、章节编号和论文小节号
+- **空间节奏**：封面 → 科学问题/总体路线（architecture）→ 机制 1（sequence）→ 机制 2（pillars）→ 创新与验证（kpi/cards）；不要目录、章节编号和论文小节号
+- **图法**：先定一条主轴，再按同色系实心→浅色→线框分层次；不要每个模块都填色，不要圆角卡片墙。
 
 ```json
 "meta": {"theme": "paper", "recipe": "grant", "accent": "2F5D62",
@@ -159,7 +160,7 @@
          "font": "Noto Sans CJK SC", "titleFont": "Noto Serif CJK SC"}
 ```
 
-版式池：`cover` `architecture` `process` `cards` `kpi_showcase` `table` `closing`
+版式池：`cover` `architecture` `sequence` `pillars` `kpi_showcase` `table` `closing`
 骨架：封面 → 总体路线（三段共用一套状态）→ 规程解析/规划 → 执行证据/记忆恢复 → 创新点与验证指标
 避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据。
 
