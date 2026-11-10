@@ -32,9 +32,9 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
-           "image_split", "image_grid", "chart_dashboard", "closing",
+           "image_split", "image_grid", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
-           "section_number", "image_statement", "image_stack",
+           "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
            "cutout_statement", "image_annotated", "image_arch"}
 THEMES = {
@@ -107,6 +107,17 @@ def validate(spec: dict, base: Path) -> None:
         assets = [slide] if layout in {"cover", "image_split", "image_hero",
                                        "image_overlay", "image_statement",
                                        "glass_overlay", "split_diagonal"} else []
+        if layout == "heat_bars":
+            items = slide.get("items")
+            if not isinstance(items, list) or not 2 <= len(items) <= 5:
+                raise ValueError(f"slide {index}: heat_bars requires 2–5 items")
+            for item in items:
+                if not isinstance(item, dict) or not item.get("title") or not item.get("body"):
+                    raise ValueError(f"slide {index}: every heat_bars item requires title and body")
+                if item.get("fire") not in {"大火", "中火", "小火", "微火"}:
+                    raise ValueError(f"slide {index}: heat_bars fire must be 大火/中火/小火/微火")
+                if not isinstance(item.get("minutes"), (int, float)) or float(item["minutes"]) <= 0:
+                    raise ValueError(f"slide {index}: heat_bars minutes must be positive")
         if layout == "image_grid":
             assets = slide["items"]
         if layout == "section_number" and slide.get("image"):
@@ -135,13 +146,6 @@ def validate(spec: dict, base: Path) -> None:
             if not isinstance(images, list) or len(images) != 2:
                 raise ValueError(f"slide {index}: split_diagonal requires images: [a, b]")
             assets = [{"image": item} for item in images]
-        if layout == "image_stack":
-            items = slide.get("items")
-            if not isinstance(items, list) or not 2 <= len(items) <= 4:
-                raise ValueError(f"slide {index}: image_stack requires 2–4 items")
-            if any(not isinstance(item, dict) or not item.get("image") for item in items):
-                raise ValueError(f"slide {index}: every stack item requires an image")
-            assets = items
         if layout == "quote_stage" and not str(slide.get("quote", "")).strip():
             raise ValueError(f"slide {index}: quote_stage requires quote text")
         if layout == "kpi_showcase":
@@ -1028,8 +1032,6 @@ class DeckBuilder:
             self.section_number_slide(slide, page)
         elif layout == "image_statement":
             self.statement_slide(slide, page)
-        elif layout == "image_stack":
-            self.stack_slide(slide, page)
         elif layout == "split_diagonal":
             self.diagonal_slide(slide, page)
         elif layout == "glass_overlay":
@@ -1093,13 +1095,72 @@ class DeckBuilder:
             self.text(slide, page.get("body", ""), 8.3, 2.4, 4.1, 3.8, 22)
         elif layout == "image_grid":
             items = page["items"]
-            rows = math.ceil(len(items) / 2)
-            height = (4.55 - .2 * (rows - 1)) / rows
-            for index, item in enumerate(items):
-                x, y = .6 + (index % 2) * 6.2, 2.05 + (index // 2) * (height + .2)
-                self.artwork(slide, item["image"], x, y, 5.9, height - .62,
-                             radius=.04, shadow=True)
-                self.text(slide, item["title"], x, y + height - .48, 5.9, .45, 18, "accent", True)
+            if len(items) == 3:
+                # Three equal tiles across, flat and square-cornered: one clean row.
+                gap, top = .3, 2.02
+                width = (12.1 - gap * 2) / 3
+                for index, item in enumerate(items):
+                    x = .6 + index * (width + gap)
+                    self.artwork(slide, item["image"], x, top, width, 3.70, radius=0.0)
+                    self.text(slide, item["title"], x, 5.84, width, .34, 17, "accent", True)
+                    if item.get("body"):
+                        self.text(slide, item["body"], x, 6.22, width, .30, 12, "muted")
+            else:
+                rows = math.ceil(len(items) / 2)
+                height = (4.55 - .2 * (rows - 1)) / rows
+                for index, item in enumerate(items):
+                    x, y = .6 + (index % 2) * 6.2, 2.05 + (index // 2) * (height + .2)
+                    self.artwork(slide, item["image"], x, y, 5.9, height - .62,
+                                 radius=.04, shadow=True)
+                    self.text(slide, item["title"], x, y + height - .48, 5.9, .45, 18, "accent", True)
+        elif layout == "heat_bars":
+            items = page["items"]
+            fire_colors = {"大火": "8C2F22", "中火": "B4602A",
+                           "小火": "E2A35E", "微火": "A9744F"}
+            levels = {"大火": 4, "中火": 3, "小火": 2, "微火": 1}
+            total = float(page.get("total_minutes", 90))
+            x0, x1 = 5.45, 11.95
+            span = x1 - x0
+            top = 2.52
+            row_h = .82
+            for i in range(len(items)):
+                if i % 2 == 0:
+                    self.box(slide, .55, top + .04 + i * row_h, 11.9, row_h - .02, "F6EEE4")
+            for tick in range(0, int(total), 15):
+                x = x0 + span * tick / total
+                self.box(slide, x, top - .10, .012, 4.10, "E4D2C0")
+                self.text(slide, str(tick), x - .18, top - .38, .36, .20, 8, "muted",
+                          align=PP_ALIGN.CENTER)
+            self.text(slide, "分钟", x1 + .02, top - .38, .5, .20, 8, "muted")
+            starts = []
+            cursor = 0.0
+            for item in items:
+                starts.append(cursor)
+                cursor += float(item["minutes"])
+            for i, item in enumerate(items):
+                y = top + .14 + i * row_h
+                fire = item["fire"]
+                level = int(item.get("level", levels.get(fire, 2)))
+                self.text(slide, item.get("number", f"{i + 1:02d}"), .78, y - .02,
+                          .55, .30, 14, "accent", True)
+                self.text(slide, item["title"], 1.34, y - .04, 2.6, .40, 20, "text", True)
+                duration = item.get("time", f"{int(float(item['minutes']))} min")
+                self.text(slide, f"{fire} · {duration}", 1.36, y + .36, 2.3, .22, 10, "muted")
+                self.box(slide, .62, y + .04, .035, .54, fire_colors[fire])
+                minutes = float(item["minutes"])
+                bar_w = max(.08, span * minutes / total)
+                bar_x = x0 + span * starts[i] / total
+                by = y + .18
+                self.box(slide, bar_x, by, bar_w, .20, fire_colors[fire], rounded=True)
+                body_x = bar_x
+                body_w = x1 - bar_x
+                if body_w < 2.6:
+                    body_x = max(x0, bar_x - 2.8)
+                    body_w = 2.8
+                self.box(slide, bar_x, by - .04, .012, .28, "text")
+                self.text(slide, item["body"], body_x, y + .43, body_w, .26, 10, "muted")
+            if page.get("source"):
+                self.text(slide, page["source"], .6, 6.70, 11.8, .20, 9, "muted")
         elif layout in {"chart", "chart_dashboard"}:
             top = 2.05 if page.get("subtitle") else 1.65
             self.chart_page(slide, page, top=top, height=6.6 - top)

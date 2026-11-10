@@ -27,7 +27,7 @@
          "font": "Noto Sans CJK SC"}
 ```
 
-版式池：`kpi_showcase` `table` `chart` `comparison` `cards` `image_split` `image_annotated`
+版式池：`kpi_showcase` `table` `chart` `heat_bars` `comparison` `cards` `image_split` `image_annotated`
 骨架：结论页 → 证据 1（表）→ 证据 2（图）→ 拆解（卡）→ 建议（process）→ 收尾
 避免：装饰性大图封面、每页一个巨型数字、彩色卡片墙。
 
@@ -49,7 +49,7 @@
          "font": "Noto Sans CJK SC"}
 ```
 
-版式池：`cover` `section_number` `cards` `table` `image_overlay` `process` `closing`
+版式池：`cover` `section_number` `cards` `table` `heat_bars` `image_overlay` `process` `closing`
 骨架：封面 → 目录 → 背景（图/时间线）→ 进展（表）→ 问题（对比）→ 计划（步骤）→ 收尾
 避免：一页塞两个结论、用装饰图代替数据、标题写成名词短语。
 
@@ -93,7 +93,7 @@
          "font": "Noto Sans CJK SC"}
 ```
 
-版式池：`cutout_statement` `image_wall` `image_stack` `section_number` `quote_stage` `image_statement`
+版式池：`cutout_statement` `image_wall` `section_number` `quote_stage` `image_statement`
 骨架：海报封面 → 图墙 → 日程（步骤）→ 现场标注 → 金句 → 收尾
 避免：低饱和莫兰迪、居中对齐的安全牌、把作品缩进小卡片。
 
