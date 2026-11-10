@@ -63,6 +63,23 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 
 `image_split` / `image_grid` 也升级为满格裁切 + 圆角 + 软阴影。所有图片一律 cover 裁切、不留白边，蒙版颜色由图片暗部采样，文字区按页型自动避让。
 
+## 结构版式
+
+| 版式 | 用途 | 关键字段 |
+| --- | --- | --- |
+| `architecture` | 3 层总体路线：三个框 + 箭头 + 底部共同验证条 | `items[3]{title,body}` `bottom_title` `bottom` |
+
+学术/基金 deck 的总体路线优先用它重画，不把论文总图整张贴进来。
+
+## 图件体检
+
+```bash
+bash run_py.sh figure_audit.py output.pptx
+bash run_py.sh figure_audit.py output.pptx --strict   # 有 DENSE 就 exit 2
+```
+
+它用 OCR 估计图内文字的实际字号，并结合图片占版面积，标出投影上读不了的密集图。经验线：图内文字低于 14pt 就不该直接上版；4800px 论文总图塞进 7in，30px 字只剩约 3pt。`--no-ocr` 可跳过 OCR，只按像素密度判断。
+
 ## 炫技版式
 
 | 版式 | 用途 | 关键字段 |
@@ -86,7 +103,7 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 ## 视觉总监与风格配方
 
 - 先明确受众、要促成的判断、内容类型、场景、情绪；再写七行风格简报：三个形容词 / 一个设计张力 / 密度 / 配色逻辑 / 字体逻辑 / 图片行为 / 空间节奏。
-- 从 `<engine-root>/style-recipes.md` 选一套主配方：`consulting` `formal` `civic` `artfair` `editorial` `history`；需要时最多加一套辅助，声明主/辅。把 `meta.recipe` 记进 spec。
+- 从 `<engine-root>/style-recipes.md` 选一套主配方：`consulting` `formal` `grant` `civic` `artfair` `editorial` `history`；需要时最多加一套辅助，声明主/辅。把 `meta.recipe` 记进 spec。
 - 配方 tokens 落进 `meta`：`theme` `accent` `colors` `font` `titleFont`。`titleFont` 可让标题单独用衬线（如 `Noto Serif CJK SC`），正文仍用 `font`。
 - 评审顺序：先 `contact_sheet.py` 出缩略图总览，看节奏/密度/重复，再抽封面、最密页、特殊媒体页、结束页全尺寸看。
 
