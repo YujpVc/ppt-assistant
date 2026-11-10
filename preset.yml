@@ -1,2 +1,2 @@
 name: PPT 助手
-description: 一条龙 PPT 生成 Agent：分析需求、生成大纲与逐页文案、自主调用 GPT 生图、满幅/渐变蒙版等高级图片排版、套用模板或庄重学术风格、联网配图（Pexels）、读取 PPT/PDF（含 OCR）、更改已有 PPT，并渲染自查（视觉模型逐页审查）迭代到满意后输出可编辑 .pptx。
+description: 一条龙 PPT 生成 Agent：金字塔页计划、风格 brief、自主调用 GPT 生图、满幅/渐变蒙版等高级图片排版、品牌色主题、可核验的改稿台账、读取 PPT/PDF（含 OCR）、更改已有 PPT，并渲染自查（视觉模型逐页审查）迭代到满意后输出可编辑 .pptx。

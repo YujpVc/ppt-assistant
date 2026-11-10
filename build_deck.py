@@ -48,14 +48,38 @@ def validate(spec: dict, base: Path) -> None:
         raise ValueError("meta must be an object")
     if not spec["meta"].get("title"):
         raise ValueError("meta.title is required")
-    if spec["meta"].get("theme", "midnight") not in THEMES:
-        raise ValueError("meta.theme must be midnight or paper")
+    theme = spec["meta"].get("theme", "midnight")
+    if theme not in THEMES:
+        raise ValueError(f"meta.theme must be one of {sorted(THEMES)}")
+    overrides = spec["meta"].get("colors") or {}
+    if not isinstance(overrides, dict):
+        raise ValueError("meta.colors must be an object")
+    for key, value in overrides.items():
+        if key not in THEMES[theme]:
+            raise ValueError(f"meta.colors.{key} is not a {theme} token")
+        text = str(value).strip().lstrip("#")
+        if len(text) != 6 or any(char not in "0123456789ABCDEFabcdef" for char in text):
+            raise ValueError(f"meta.colors.{key} must be a 6-digit hex color")
+    accent = spec["meta"].get("accent")
+    if accent is not None:
+        text = str(accent).strip().lstrip("#")
+        if len(text) != 6 or any(char not in "0123456789ABCDEFabcdef" for char in text):
+            raise ValueError("meta.accent must be a 6-digit hex color")
     slides = spec.get("slides")
+    seen_ids: set[str] = set()
     if not isinstance(slides, list) or not slides:
         raise ValueError("slides must be a non-empty array")
     for index, slide in enumerate(slides, 1):
         if not isinstance(slide, dict) or slide.get("layout") not in LAYOUTS:
             raise ValueError(f"slide {index}: unsupported layout")
+        stable_id = slide.get("id", f"P{index:02d}")
+        if (not isinstance(stable_id, str) or not 1 <= len(stable_id) <= 24
+                or any(char not in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+                       for char in stable_id)):
+            raise ValueError(f"slide {index}: id must be 1-24 word characters")
+        if stable_id in seen_ids:
+            raise ValueError(f"slide {index}: duplicate id {stable_id}")
+        seen_ids.add(stable_id)
         layout = slide["layout"]
         if not slide.get("title") and layout not in {"cover", "closing"}:
             raise ValueError(f"slide {index}: title is required")
@@ -150,7 +174,12 @@ class DeckBuilder:
     def __init__(self, spec: dict, base: Path):
         self.meta = spec["meta"]
         self.base = base
-        self.colors = THEMES[self.meta.get("theme", "midnight")]
+        theme = THEMES[self.meta.get("theme", "midnight")]
+        self.colors = dict(theme)
+        for key, value in (self.meta.get("colors") or {}).items():
+            self.colors[key] = str(value).strip().lstrip("#").upper()
+        if self.meta.get("accent"):
+            self.colors["accent"] = str(self.meta["accent"]).strip().lstrip("#").upper()
         self.font = self.meta.get("font", "Noto Sans CJK SC")
         self.prs = Presentation()
         self.prs.slide_width, self.prs.slide_height = Inches(13.333333), Inches(7.5)
@@ -301,9 +330,11 @@ class DeckBuilder:
         if kicker:
             self.text(slide, str(kicker).upper(), x, y - 0.55, w, 0.32, 12, accent, True)
             self.box(slide, x, y - 0.16, 0.62, 0.045, accent)
-        self.text(slide, page["title"], x, y, w, 2.15,
-                  page.get("title_size", 42 if side != "bottom" else 38),
-                  title_color, True)
+        title = self.text(slide, page["title"], x, y, w, 2.15,
+                          page.get("title_size", 42 if side != "bottom" else 38),
+                          title_color, True)
+        if title is not None:
+            title.name = "title"
         if page.get("body"):
             self.text(slide, page["body"], x, y + 2.28, w, 1.35, 19, muted)
         meta = page.get("meta") or self.meta.get("author", "")
@@ -333,8 +364,10 @@ class DeckBuilder:
         if page.get("kicker"):
             self.text(slide, str(page["kicker"]).upper(), x, top, w, 0.3, 11, accent, True)
             top += 0.42
-        self.text(slide, page["title"], x, top, w, 1.35, page.get("title_size", 32),
-                  title_color, True)
+        title = self.text(slide, page["title"], x, top, w, 1.35,
+                          page.get("title_size", 32), title_color, True)
+        if title is not None:
+            title.name = "title"
         cursor = top + 1.62
         if page.get("body"):
             self.text(slide, page["body"], x, cursor, w, 1.35, 17, body_color)
@@ -380,11 +413,20 @@ class DeckBuilder:
         slide = self.prs.slides.add_slide(self.prs.slide_layouts[6])
         slide.background.fill.solid()
         slide.background.fill.fore_color.rgb = RGBColor.from_string(self.colors["bg"])
-        self.text(slide, page.get("title", self.meta["title"]), .6, .38, 12.1, .95, 30, bold=True)
+        title = self.text(slide, page.get("title", self.meta["title"]),
+                          .6, .38, 12.1, .95, 30, bold=True)
+        if title is not None:
+            title.name = "title"
         if page.get("subtitle"):
-            self.text(slide, page["subtitle"], .6, 1.35, 12.1, .65, 17, "muted")
-        self.text(slide, self.meta["title"], .6, 7.06, 10.8, .24, 10, "muted")
-        self.text(slide, f"{index:02}", 12.0, 7.02, .7, .3, 12, "muted")
+            subtitle = self.text(slide, page["subtitle"], .6, 1.35, 12.1, .65, 17, "muted")
+            if subtitle is not None:
+                subtitle.name = "subtitle"
+        footer = self.text(slide, self.meta["title"], .6, 7.06, 10.8, .24, 10, "muted")
+        if footer is not None:
+            footer.name = "chrome:footer"
+        number = self.text(slide, f"{index:02}", 12.0, 7.02, .7, .3, 12, "muted")
+        if number is not None:
+            number.name = "chrome:page"
         slide.notes_slide.notes_text_frame.text = page.get("notes", "")
         return slide
 
@@ -1129,6 +1171,9 @@ def build(spec: dict, base: Path, output: Path) -> None:
             slide = builder.blank(page, index)
         else:
             slide = builder.new(page, index)
+        # Stable page identity lives in the slide name: it survives reordering
+        # and gives the edit ledger something position-independent to match on.
+        slide._element.cSld.set("name", page.get("id", f"P{index:02d}"))
         builder.compose(slide, page)
     output.parent.mkdir(parents=True, exist_ok=True)
     builder.prs.save(str(output))

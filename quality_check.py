@@ -28,9 +28,12 @@ def inspect(path: Path) -> dict:
         text_boxes = 0
         auto_shapes = 0
         diagram_shapes = 0
+        picture_area = 0
+        slide_area = prs.slide_width * prs.slide_height
         for shape in slide.shapes:
             if shape.shape_type == 13:  # MSO_SHAPE_TYPE.PICTURE
                 images += 1
+                picture_area += (shape.width or 0) * (shape.height or 0)
             elif getattr(shape, "has_table", False):
                 tables += 1
             elif getattr(shape, "has_chart", False):
@@ -51,6 +54,7 @@ def inspect(path: Path) -> dict:
                 "text_boxes": text_boxes,
                 "auto_shapes": auto_shapes,
                 "diagram_shapes": diagram_shapes,
+                "picture_coverage": round(picture_area / slide_area, 3) if slide_area else 0,
                 "shapes": len(slide.shapes),
             }
         )
@@ -110,6 +114,17 @@ def failures(report: dict) -> list[str]:
         if len(text_only) > max(1, report["slides"] // 4):
             problems.append(
                 "以下页面几乎只有文字框，疑似未完成排版：" + ", ".join(map(str, text_only))
+            )
+        image_only = [
+            item["slide"]
+            for item in report["slide_stats"]
+            if item["images"] and item["picture_coverage"] >= 0.95
+            and item["text_boxes"] == 0 and not (item["tables"] or item["charts"])
+        ]
+        if image_only:
+            problems.append(
+                "以下页面是整页图片、没有可编辑文字（疑似 AI 工具导出的图片稿）："
+                + ", ".join(map(str, image_only))
             )
     return problems
 

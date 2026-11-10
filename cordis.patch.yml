@@ -49,6 +49,18 @@
                    4. If the user supplies a PPTX template or a reference deck, use template mode below; do not rebuild a complex deck from a blank Presentation.
                    5. Preserve the user's existing source deck. Write the finished copy to the requested output path, and report the JSON spec, generator, and quality-check result.
 
+                STYLE BRIEF — 先定视觉，再动版式
+                - 动笔前写四行：用途与受众、气质（克制学术 / 发布会 / 内部复盘）、主色（只选 1 个）+ 中性色、图像风格（写实冷调 / 暖调 / 不用图）。
+                - 主色写进 `meta.accent`；需要换底色/面板/文字色时用 `meta.colors` 覆盖 `bg/panel/text/muted/accent`（6 位 hex）。字体写 `meta.font`。
+                - 配色按 HSL 想：邻近色相做区分，同色相拉明度做层级，降饱和+提亮=莫兰迪。一页只留一个高饱和重点色，每页重点色出现 1–2 处，别每个标题都染色。
+                - 先定这两个字段再写页面，整套才不会一页一个样。
+
+                PAGE PLAN — 金字塔：每页先有结论，再有证据
+                - 每个正文页的标题必须是一句话结论（「执行率 88.5%，预算仍有余量」），不是名词短语（「预算情况」）。听众只读标题也能把整套故事串起来。
+                - 一页一个思想；页内要点以上统下、归类分组、顺序递进（背景 → 问题 → 方案 → 行动）；结论放标题，证据放数字/图表/引用。
+                - 写 spec 前先列出页计划：`P03 | 结论句 | 证据（数据/图/表） | 视觉类型 | 来源`。没有证据的结论删掉，或明确标成「待确认」，不要编。
+                - 图表不是结论：先写「这张图说明了什么」，再把图放上去；一张图只承担一个判断。
+
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
@@ -57,6 +69,8 @@
                      image_overlay（满幅图 + 单侧渐变 + 正文/要点/数字，字段 image/side/title/body/bullets/stats）、
                      image_wall（2–4 张瀑布流错位，字段 items[{image,title,body}]）。
                    - chart 使用 PowerPoint 原生可编辑图表；文本容量、素材存在性和布局字段在生成前校验。
+                   - `meta.colors` 可覆盖 `bg/panel/text/muted/accent`（6 位 hex），`meta.accent` 是主色简写；整套只用一个重点色。
+                   - 每页可给稳定 `id`（P01、P02…），引擎写进 slide name；改稿台账按 id 对齐，页序变了也不丢身份。
 
                 TEMPLATE ENGINE — 用户提供模板时的正式路径
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <template-spec.json> <output.pptx> --template <template.pptx>`
@@ -116,8 +130,15 @@
                 - 每套 deck 至少 2 页用满幅/出血图，封面与章节页优先 image_hero；相邻页不要连续用同一种图片关系。
                 - 图片上不放长正文：满幅页正文 ≤2 行、要点 ≤4 条、字号 ≥15；压图文字对比度按渲染图实测（≥4.5:1），不要凭感觉。
 
-                MODIFY EXISTING PPT
-                - bash <engine-root>/run_py.sh restyle.py <in.pptx> <out.pptx> — unify fonts/colors in place. For deeper changes: ingest → rebuild spec → regenerate.
+                SCOPED EDIT — 改稿先立合同（「领导只让改一页」时尤其重要）
+                - 改之前先存基线：`bash <engine-root>/run_py.sh deck_baseline.py snapshot <原稿> <baseline.json>`，再复制工作副本；原稿永不覆盖。
+                - 先写清三件事：可改页（P03）、可改对象（文字 / 数字 / 页序）、保护页（P01,P02,P04–P08）。页用稳定 id，别用「第三页」这种换序就漂的说法。
+                - 数字逐位核对；不要为了排版好看改精度（1,620 不能变 1,600），不要补材料里没有的人均/比例/评价词（「节省」「优秀」要有口径）。
+                - 改完重建工作副本，跑 `bash <engine-root>/run_py.sh deck_baseline.py compare baseline.json <新稿> --protect P01,P02 --expect P03 --out ledger.md`；台账通过才算改完。
+                - 再把渲染图和文件版本对一遍：截图里是新标题，交付文件也必须是新标题。
+                - 单页改版 = 改 spec 里那一页 → 重建 → compare；不要在成品 pptx 上手改，除非用户明确只要文件、不要可重建流程。
+                - 模板/母版类改动：先识别原稿的字体层级、背景、留白再沿用；局部改版不要顺手换掉整套主题。
+                - 其他工具：`restyle.py <in.pptx> <out.pptx>` 只统一字体/颜色；更深的改动走 ingest → 重建 spec → regenerate。
 
                 SELF-CHECK — ALWAYS run, and iterate until satisfied (never skip)
                 - pptfast 首选：`bash <engine-root>/run_pptfast.sh audit <deck项目>` — 零 token 确定性几何审查（溢出/越界/低对比/重叠/内容截断/内容丢失），exit 0 才算通过；发现问题按「重组，不删除」修，再单独重跑 audit。启动器只使用已安装的 `@liustack/pptfast`，不会执行工作区脚本。
@@ -133,6 +154,8 @@
                 - 视觉模型会把 consulting 主题的 banner 黄色装饰条误判成「文字被遮挡」——几何结论以 `audit` 为准，vision 只做主观「留白/断行/单调」反馈。
                 - 生图一次 30–250 秒：用后台 job，别让整轮对话干等；失败先看 `--dry-run` 和配置路径，再重试，别连续烧额度。
                 - 全套图片风格不统一，比没有图更廉价：同一套 deck 复用同一组光线/色温/质感词。
+                - 一键 AI 工具的「导出 PPTX」经常是一页一张图片：打开能看、字改不了。收到这种源文件先 `quality_check.py`，别在图片上手改。
+                - 改稿时先存基线再动手；「我记得原来是这样」不算证据，台账才算。
 
                 MASTER-LEVEL QUALITY BAR (apply to every deck; learned from strict review)
                 - 必读「密度优先」配方（博采 CyberPPT/pptfast/社区开源 PPT skill 的实测结论）：<engine-root>/density-recipe.md。要点：pacing 一律 dense；每页 content 至少 3–4 个组件（paragraph+bullets+verdict_banner+image/kpi/comparison/steps）；每页设 background（满幅照片白蒙层 0.85–0.88 或暖纸渐变），禁止纯白底、禁止大面积默认白卡；每套 ≥5 种版式、相邻页不同；避开 image-lead-split（右侧空手机占位框）。
@@ -141,21 +164,31 @@
                 - Clean background: calm single-tone / subtle-gradient / 满幅照片+蒙层；avoid busy decorative patterns that fight the content.
                 - Balance: if a card/column has little text, add content or an image, never leave a large empty "unfinished template" area; spread content top-to-bottom.
                 - Density & variety: 正文宁多勿少，卡片下半不留大块空白；混用 image-split/image-top/quote-stage/comparison/steps/kpi_cards/checklist，整份避免一种卡片。
-                - Data credibility: where numbers appear, add a source/scope note (or speaker note).
+                - Speaker script: every slide's notes carry a 2–4 sentence spoken script with the transition to the next page; export with `bash <engine-root>/run_py.sh speaker_notes.py export <deck.pptx> <script.md>` when the user wants a script.
+                - Data credibility: where numbers appear, add a source/scope note (or speaker note); never round a number for visual neatness; keep units and labels next to the value.
+                - One message per page: the title is the conclusion; if a page needs two titles, it is two pages.
+                - Color discipline: one accent across the deck; adjacent hues for categories, lightness for hierarchy; no second saturated accent.
                 - Images: 抓图/生图后逐张 vision 核验「图对不对题」；图片必须 crop-to-fill + 渐变/圆角/阴影之一；封面与章节页用满幅出血+渐变蒙版，读到的是「设计过」而不是「贴上去」。
+
+                TOOL BOUNDARIES — AI 做 PPT 的能与不能
+                - 一键 AI 工具常把每页导出成整页图片：看着漂亮但文字不可编辑，不能作为交付。我们的交付必须是真文本、真表格、真图表；`quality_check.py` 会拦「整页图片、无可编辑文字」的稿。
+                - AI 擅长：结构、文案、版式、配图、讲稿、批量一致性；不擅长：替你定业务口径、编数据、判断「好不好」。数字和结论必须来自用户材料或可核验来源。
+                - 生成图只做氛围；证据图用用户实拍、官方图或我们自己画的机制图。
+                - 不要把「AI 生成得挺像」当成「事实是对的」；不确定就标待确认。
 
                 WORKFLOW
                 1. Analyze the requirement; ask_user_question only for material gaps (topic/audience/purpose/pages/default 20/raw data). Do not over-ask.
-                2. Write a self-contained JSON spec under the workspace and reference only the user's actual files as assets. Do not execute workspace scripts.
+                2. 先写 STYLE BRIEF 四行 + 页计划表（页 / 结论句 / 证据 / 视觉类型 / 来源），再动 spec；标题不是结论就先改标题。
                 3. 需要联网调研的主题（竞品分析/行业报告/市场调研）：先用 web_search 联网检索（**指定信源优先级**：优先官网、财报、权威媒体，避开自媒体二手信息），再收敛成大纲 + 逐页内容。
-                4. Draft outline + per-slide copy; encode as a spec JSON (pick engine + slide types to fit the content and keep layouts varied).
+                4. Write a self-contained JSON spec under the workspace and reference only the user's actual files as assets. Do not execute workspace scripts. (pick engine + slide types to fit the content and keep layouts varied).
                 4b. 需要氛围/概念图时，先跑 `gen_image.py` 并把每张图看过一遍，再写进 spec；图片放工作区 assets/，提示词留在同名 .json sidecar。没有合适的图就换版式，不要拿错图硬塞。
-                5. Generate to the user's requested output path. Do not overwrite the user's source assets or decks.
+                5. Generate to the user's requested output path. Do not overwrite the user's source assets or decks. 改现有稿时先 snapshot 基线，再写工作副本。
                 6. Run `quality_check.py` first, then engine audit/check, then render and visual review. Fix and iterate until all available checks pass. Run the repository helper `bash <engine-root>/run_py.sh render_ppt.py <out.pptx> --outdir <workspace>/.render`; it searches the system and user-scoped renderer. If that helper fails, say rendering is unavailable, but do not claim visual review passed and do not use that limitation to bypass the structure gate.
-                7. Deliver the file path as inline code, with the exact checks performed.
+                6b. 改稿必须再跑 `deck_baseline.py compare`，把 `--protect`/`--expect` 写进命令，交付时附上台账路径与结论；台账不通过就不算改完。
+                7. Deliver the file path as inline code, with the exact checks performed (and the change ledger when editing).
 
                 CONTENT RULES
-                - Formal/academic tone when asked; conclusion-first for work reports; 3–5 points per page, short bullets; prefer the user's raw data (mark any invented data); write a speaker note per slide; default 20 pages; honor any user-provided 内容红线 (e.g. 不出现推荐编号/Level/同意率).
+                - Formal/academic tone when asked; conclusion-first for work reports; 3–5 points per page, short bullets; prefer the user's raw data (mark any invented data); write a 2–4 句口语讲稿 in each slide's notes (不是把正文抄一遍); default 20 pages; honor any user-provided 内容红线 (e.g. 不出现推荐编号/Level/同意率).
                 - 调研/分析类 deck 用「内容饱满」结构（学 TraeWork/WorkBuddy）：封面/目录 → 多维度对比总表（打分 + 标色突出）→ 逐对象深度档案（每家/每项一页 + 优劣势小结）→ 关键差异点用表格+色块 → 结论页提炼 3 条可执行建议 → 最后一页「一页速览」总结卡片（可直接截图转发）。这种结构天然密度高、不空。
                 - 关键格式要求（如「输出 PPTX，不要 HTML/图片」）单独放提示词末尾强调，别藏在正文里。
                 - 复杂 deck 可拆角色并行（调研/内容/设计/质检，学 WorkBuddy 的 OPC 一人公司），用 subagent 各自产出再合并。
