@@ -1,10 +1,10 @@
 # PPT 助手
 
-DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 PowerPoint 生成和修改、结构质检、可选的联网配图与渲染审查。安装只插入 `ppt-assistant` 预设，不修改标准模式、模型路由、权限或现有会话。
+DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 PowerPoint 生成和修改、自主 GPT 生图、满幅/渐变蒙版图片排版、结构质检、可选的联网配图与渲染审查。安装只插入 `ppt-assistant` 预设，不修改标准模式、模型路由、权限或现有会话。
 
 ## 安装
 
-在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.0.0/ppt-assistant-1.0.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.0.0/ppt-assistant-1.0.0.tgz`。
+在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.1.0/ppt-assistant-1.1.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.1.0/ppt-assistant-1.1.0.tgz`。
 
 包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
@@ -12,20 +12,52 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 运行环境
 
-使用 Python 3.10+，在引擎目录运行 `python3 -m pip install -r requirements.txt`。这些依赖不会在插件安装时自动执行。`run_pptfast.sh` 可选使用已安装的 `@liustack/pptfast@0.20.0`，缺少时使用内置 `build_deck.py`；本包不自动下载 pptfast。
+使用 Python 3.10+。在引擎目录运行 `bash run_py.sh --help` 可确认解释器；`run_py.sh` 会挑选真正装有 python-pptx/Pillow 的 Python（DSH 非登录 shell 里的 `python3` 可能只是运行时）。依赖安装：`python3 -m pip install -r requirements.txt`，不会在插件安装时自动执行。`run_pptfast.sh` 可选使用已安装的 `@liustack/pptfast@0.20.0`，缺少时使用内置 `build_deck.py`；本包不自动下载 pptfast。
+
+生图客户端 `gen_image.py` 只用标准库，不需要额外依赖。它的配置按顺序从 `--config`、`$PPT_IMAGE_CONFIG`、引擎目录 `image-config.json`、`~/.config/ppt-assistant/image.json` 读取，格式为 `{"api_base": "https://uuapi.io/v1", "api_key": "..."}`；也接受 `UUAPI_API_KEY` / `UUAPI_BASE_URL`。密钥不写入本仓库、不写进成图、不打印。
 
 渲染需要 LibreOffice 和 `pdftoppm`，扫描文档 OCR 需要 Tesseract。联网取图可通过 `PEXELS_API_KEY` 设置个人密钥，视觉审查需要 `DEEPSEEK_API_KEY` 和可用的视觉模型权限。旧提示词提到的 dsh-office、mindmap 等补充插件需另行安装，本包不自动安装或宣称提供这些插件的工具。
 
 ## 使用
 
 ```bash
-python3 build_deck.py spec.json output.pptx
-python3 quality_check.py output.pptx
-python3 build_deck.py template-spec.json output.pptx --template template.pptx
-python3 quality_check.py output.pptx --template template.pptx
+bash run_py.sh build_deck.py spec.json output.pptx
+bash run_py.sh quality_check.py output.pptx
+bash run_py.sh build_deck.py template-spec.json output.pptx --template template.pptx
+bash run_py.sh quality_check.py output.pptx --template template.pptx
 ```
 
 内置默认生成器支持原生可编辑文本、表格与图表。模板、Logo 由使用者显式提供，本包提供通用默认模板；旧版 `generate_ppt.py` 可用 `--template` 指定用户模板，不包含本机机构素材。生成质量取决于输入素材和逐页检查；没有运行视觉检查时不得声称已通过。
+
+## 自主生图
+
+```bash
+bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
+  --size landscape --model gpt-image-2.5-flare --retries 1
+```
+
+- 尺寸：`1024x1024`、`1536x1024`（landscape，满幅 16:9 用这个再裁）、`1024x1536`。
+- `--ref a.png --ref b.png` 走参考图编辑，最多 4 张；`--dry-run` 先校验配置与端点。
+- 每次生成会写同名 `.json` 记录提示词、模型、耗时与哈希；密钥不在记录里。
+- 单张约 30 秒到 4 分钟，慢是上游排队、不是卡死。整套 deck 建议 3–6 张，同一组光线/色温词保证风格统一。
+
+## 图片版式
+
+`build_deck.py` 在原有版式外新增三种图片关系，全部由引擎完成裁切、渐变和阴影，不需要手工修图：
+
+| 版式 | 用途 | 关键字段 |
+| --- | --- | --- |
+| `image_hero` | 封面/章节/收尾：满幅出血 + 渐变蒙版 + 大标题 | `image` `kicker` `title` `body` `scrim` `ink` |
+| `image_overlay` | 满幅图 + 单侧渐变面板，放正文、要点、数字 | `image` `side` `title` `body` `bullets` `stats` |
+| `image_wall` | 2–4 张瀑布流错位，圆角 + 细阴影 | `items[{image,title,body}]` |
+
+`image_split` / `image_grid` 也升级为满格裁切 + 圆角 + 软阴影。所有图片一律 cover 裁切、不留白边，蒙版颜色由图片暗部采样，文字区按页型自动避让。
+
+## 打包
+
+```bash
+npm pack          # 生成 @rx01334/ppt-assistant-1.1.0.tgz
+```
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。
 

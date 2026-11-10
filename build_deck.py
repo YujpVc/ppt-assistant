@@ -20,17 +20,20 @@ from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.shapes import MSO_CONNECTOR
+from pptx.enum.text import MSO_ANCHOR
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
 
+import media
 from charts import draw_chart, resolve_chart
 
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
-           "image_split", "image_grid", "chart_dashboard", "closing"}
+           "image_split", "image_grid", "chart_dashboard", "closing",
+           "image_hero", "image_overlay", "image_wall"}
 THEMES = {
     "midnight": {"bg": "0B1324", "panel": "17243B", "text": "F7FBFF",
                  "muted": "B2C2D9", "accent": "48CAE4"},
@@ -63,9 +66,28 @@ def validate(spec: dict, base: Path) -> None:
                 raise ValueError(f"slide {index}: items requires {minimum}–{maximum} entries")
             if any(not isinstance(item, dict) or not item.get("title") for item in items):
                 raise ValueError(f"slide {index}: each item requires a title")
-        assets = [slide] if layout in {"cover", "image_split"} else []
+        assets = [slide] if layout in {"cover", "image_split", "image_hero",
+                                       "image_overlay"} else []
         if layout == "image_grid":
             assets = slide["items"]
+        if layout == "image_wall":
+            items = slide.get("items")
+            if not isinstance(items, list) or not 2 <= len(items) <= 4:
+                raise ValueError(f"slide {index}: image_wall requires 2–4 items")
+            if any(not isinstance(item, dict) or not item.get("image")
+                   or not item.get("title") for item in items):
+                raise ValueError(f"slide {index}: every wall item requires image and title")
+            assets = items
+        if layout in {"image_hero", "image_overlay"}:
+            if not slide.get("image"):
+                raise ValueError(f"slide {index}: {layout} requires an image")
+            if slide.get("ink", "light") not in {"light", "dark"}:
+                raise ValueError(f"slide {index}: ink must be light or dark")
+            allowed = {"left", "right", "bottom", "top", "diagonal"}
+            if layout == "image_hero" and slide.get("scrim", "left") not in allowed:
+                raise ValueError(f"slide {index}: scrim must be one of {sorted(allowed)}")
+            if layout == "image_overlay" and slide.get("side", "left") not in {"left", "right"}:
+                raise ValueError(f"slide {index}: image_overlay side must be left or right")
         for asset in assets:
             image = asset.get("image")
             if not image and layout != "cover":
@@ -103,6 +125,25 @@ def validate_chart_page(page: dict, base: Path) -> None:
         raise ValueError("takeaway must be a string")
 
 
+def _soft_shadow(shape, blur_pt=14, distance_pt=6, opacity=34000,
+                 color="000000") -> None:
+    """Attach a restrained outer shadow to a picture (DrawingML, editable)."""
+    sp_pr = shape._element.spPr
+    for tag in ("a:effectLst", "a:effectDag"):
+        for old in sp_pr.findall(qn(tag)):
+            sp_pr.remove(old)
+    effect = sp_pr.makeelement(qn("a:effectLst"), {})
+    shadow = sp_pr.makeelement(qn("a:outerShdw"), {
+        "blurRad": str(int(blur_pt * 12700)),
+        "dist": str(int(distance_pt * 12700)),
+        "dir": "5400000", "algn": "ctr", "rotWithShape": "0"})
+    shade = sp_pr.makeelement(qn("a:srgbClr"), {"val": color})
+    shade.append(sp_pr.makeelement(qn("a:alpha"), {"val": str(opacity)}))
+    shadow.append(shade)
+    effect.append(shadow)
+    sp_pr.append(effect)
+
+
 class DeckBuilder:
     """Own presentation state and layout primitives for one specification."""
 
@@ -124,7 +165,8 @@ class DeckBuilder:
         shape.line.fill.background()
         return shape
 
-    def text(self, slide, value, x, y, w, h, size=21, color="text", bold=False):
+    def text(self, slide, value, x, y, w, h, size=21, color="text", bold=False,
+             anchor=None):
         """Fit text conservatively; reject dense content instead of shrinking it."""
         value = str(value)
         if not value.strip():
@@ -136,6 +178,8 @@ class DeckBuilder:
         shape = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
         frame = shape.text_frame
         frame.word_wrap = True
+        if anchor is not None:
+            frame.vertical_anchor = anchor
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = 0
         for index, line in enumerate(value.split("\n")):
             paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
@@ -171,6 +215,167 @@ class DeckBuilder:
         slide.shapes.add_picture(payload, Inches(left), Inches(top), Inches(width), Inches(height))
         return left, top, ratio
 
+    def _load(self, filename):
+        with Image.open(self.base / filename) as source:
+            return ImageOps.exif_transpose(source).convert("RGB")
+
+    def artwork(self, slide, filename, x, y, w, h, *, radius=0.0,
+                scrim=None, shadow=False, dpi=160):
+        """Place a picture as designed artwork: crop-to-fill, never letterboxed.
+
+        ``radius`` rounds the corners (ratio of the short edge), ``scrim`` is a
+        media.apply_scrim kwargs dict and ``shadow`` adds a soft outer shadow.
+        """
+        picture = media.cover(self._load(filename),
+                              (max(1, int(w * dpi)), max(1, int(h * dpi))))
+        if scrim:
+            picture = media.apply_scrim(picture, **scrim)
+        if radius:
+            picture = media.rounded(picture, radius)
+        payload = io.BytesIO()
+        picture.save(payload, "PNG")
+        payload.seek(0)
+        shape = slide.shapes.add_picture(payload, Inches(x), Inches(y), Inches(w), Inches(h))
+        if shadow:
+            _soft_shadow(shape)
+        return shape
+
+    def full_bleed(self, slide, filename, *, scrim=None, color=None,
+                   start=0.0, end=0.82, gamma=1.2, opacity=0.94,
+                   vignette=0.0, focus=(0.5, 0.5), veil=0.0):
+        """A 16:9 picture that covers the whole slide and melts into a color."""
+        w, h = 13.333333, 7.5
+        picture = media.cover(self._load(filename), (1920, 1080), centering=focus)
+        tone = (media.parse_color(color) if color
+                else media.sample_ink(picture, mix=0.45, mix_color=self.colors["bg"]))
+        if veil:
+            picture = media.veil(picture, color=tone, opacity=veil)
+        if scrim:
+            picture = media.apply_scrim(picture, color=tone, direction=scrim,
+                                        start=start, end=end, gamma=gamma,
+                                        opacity=opacity)
+        if vignette:
+            picture = media.vignette(picture, strength=vignette)
+        payload = io.BytesIO()
+        picture.convert("RGB").save(payload, "JPEG", quality=92)
+        payload.seek(0)
+        slide.shapes.add_picture(payload, Inches(0), Inches(0), Inches(w), Inches(h))
+        return media.to_hex(tone)
+
+    def blank(self, page, index):
+        """A slide without the standard title band (full-bleed compositions)."""
+        slide = self.prs.slides.add_slide(self.prs.slide_layouts[6])
+        slide.background.fill.solid()
+        slide.background.fill.fore_color.rgb = RGBColor.from_string(self.colors["bg"])
+        slide.notes_slide.notes_text_frame.text = page.get("notes", "")
+        return slide
+
+    def hero_slide(self, slide, page):
+        """Full-bleed image + gradient scrim + oversized headline."""
+        ink = page.get("ink", "light")
+        side = page.get("scrim", "left")
+        # Dark text needs a light veil; light text needs the picture's own dark
+        # tone. Sampling a dark scrim under dark text is unreadable by design.
+        color = page.get("scrim_color")
+        if color is None and ink == "dark":
+            color = "F7FBFF"
+        self.full_bleed(slide, page["image"], scrim=side,
+                        color=color,
+                        start=0.16 if side == "bottom" else 0.0,
+                        end=page.get("scrim_end", 1.0 if side == "bottom" else 0.84),
+                        opacity=page.get("scrim_opacity",
+                                         0.90 if ink == "dark" else (0.96 if side == "bottom" else 0.95)),
+                        vignette=page.get("vignette", 0.16),
+                        veil=page.get("veil", 0.42 if ink == "dark" else 0.0))
+        light = ink == "light"
+        title_color = "FFFFFF" if light else self.colors["text"]
+        muted = "CBD9EA" if light else self.colors["muted"]
+        accent = "7FE3F0" if light else self.colors["accent"]
+        if side == "bottom":
+            x, y, w = 0.95, 3.35, 11.45
+        elif side == "right":
+            x, y, w = 6.55, 1.95, 6.2
+        else:
+            x, y, w = 0.95, 1.95, 6.6
+        kicker = page.get("kicker")
+        if kicker:
+            self.text(slide, str(kicker).upper(), x, y - 0.55, w, 0.32, 12, accent, True)
+            self.box(slide, x, y - 0.16, 0.62, 0.045, accent)
+        self.text(slide, page["title"], x, y, w, 2.15,
+                  page.get("title_size", 42 if side != "bottom" else 38),
+                  title_color, True)
+        if page.get("body"):
+            self.text(slide, page["body"], x, y + 2.28, w, 1.35, 19, muted)
+        meta = page.get("meta") or self.meta.get("author", "")
+        if meta:
+            self.text(slide, meta, x, 6.88 if side == "bottom" else 6.55, w, 0.35,
+                      12, muted)
+        if page.get("page_number", False):
+            self.text(slide, f"{page.get('index', '')}", 12.0, 7.02, 0.7, 0.3, 11, muted)
+
+    def overlay_slide(self, slide, page):
+        """Full-bleed image + one-side scrim panel with title, body and stats."""
+        side = page.get("side", "left")
+        ink = page.get("ink", "light")
+        self.full_bleed(slide, page["image"], scrim=side,
+                        color=page.get("scrim_color"),
+                        end=page.get("scrim_end", 0.60),
+                        opacity=page.get("scrim_opacity", 0.93),
+                        vignette=0.12)
+        light = ink == "light"
+        title_color = "FFFFFF" if light else self.colors["text"]
+        body_color = "DCE8F6" if light else self.colors["text"]
+        muted = "AFC3DA" if light else self.colors["muted"]
+        accent = "7FE3F0" if light else self.colors["accent"]
+        x = 0.95 if side != "right" else 7.05
+        w = 5.35
+        top = 1.55
+        if page.get("kicker"):
+            self.text(slide, str(page["kicker"]).upper(), x, top, w, 0.3, 11, accent, True)
+            top += 0.42
+        self.text(slide, page["title"], x, top, w, 1.35, page.get("title_size", 32),
+                  title_color, True)
+        cursor = top + 1.62
+        if page.get("body"):
+            self.text(slide, page["body"], x, cursor, w, 1.35, 17, body_color)
+            cursor += 1.05
+        bullets = page.get("bullets") or []
+        for position, bullet in enumerate(bullets[:4]):
+            y = cursor + position * 0.62
+            self.box(slide, x, y + 0.1, 0.1, 0.1, accent)
+            self.text(slide, bullet, x + 0.28, y, w - 0.28, 0.5, 15, body_color)
+        stats = page.get("stats") or []
+        if stats:
+            stat_top = 6.05
+            span = w / len(stats)
+            for position, stat in enumerate(stats[:3]):
+                sx = x + position * span
+                self.text(slide, str(stat.get("value", "")), sx, stat_top, span - 0.2, 0.55,
+                          26, accent, True)
+                self.text(slide, str(stat.get("label", "")), sx, stat_top + 0.5, span - 0.2,
+                          0.3, 11, muted)
+        if page.get("source"):
+            self.text(slide, page["source"], x, 6.85, w, 0.28, 10, muted)
+
+    def wall_slide(self, slide, page):
+        """Staggered 2–4 image wall: equal widths, uneven heights, soft depth."""
+        items = page["items"]
+        count = len(items)
+        gap = 0.3
+        width = (12.1 - gap * (count - 1)) / count
+        offsets = (0.0, 0.62, 0.26, 0.84)
+        for index, item in enumerate(items):
+            top = 1.92 + offsets[index % len(offsets)]
+            height = 6.35 - top - 0.5
+            left = 0.6 + index * (width + gap)
+            self.artwork(slide, item["image"], left, top, width, height,
+                         radius=0.055, shadow=True)
+            self.text(slide, item["title"], left, top + height + 0.16, width, 0.3,
+                      15, "text", True)
+            if item.get("body"):
+                self.text(slide, item["body"], left, top + height + 0.46, width, 0.3,
+                          11, "muted")
+
     def new(self, page, index):
         slide = self.prs.slides.add_slide(self.prs.slide_layouts[6])
         slide.background.fill.solid()
@@ -183,6 +388,18 @@ class DeckBuilder:
         slide.notes_slide.notes_text_frame.text = page.get("notes", "")
         return slide
 
+    def _text_lines(self, value, width, size):
+        return sum(max(1, math.ceil(sum(1 if ord(char) > 0x2E80 else .55 for char in line)
+                                    / (width * 72 / size)))
+                   for line in str(value).split("\n"))
+
+    def _card_need(self, item, width):
+        """Estimate the height a card needs for its copy, in inches."""
+        body = self._text_lines(item.get("body", ""), width - .5, 20) * 20 * 1.25 / 72
+        # title band + top pad (1.15) + bottom band for rule/foot (1.02)
+        base = 1.15 + body + 1.02
+        return max(2.6, min(4.55, base))
+
     def card(self, slide, item, x, y, w, h, number=None):
         self.box(slide, x, y, w, h, rounded=True)
         offset = .25
@@ -190,17 +407,35 @@ class DeckBuilder:
             self.text(slide, f"{number:02}", x + .25, y + .25, w - .5, .55, 28, "accent", True)
             offset = 1.0
         self.text(slide, item["title"], x + .25, y + offset, w - .5, .85, 23, "accent", True)
-        body_height = h - offset - 1.25
+        compact = h < 3.0
+        numbered = number is not None
+        body_height = h - offset - (1.55 if compact else (1.7 if numbered else 1.9))
         # Four-card pages intentionally use compact cards.  Keep their body
         # copy readable while leaving enough vertical room for two wrapped
         # Chinese lines instead of allowing the strict capacity check to fail.
         body_size = 15 if body_height < 1.0 else 20
-        self.text(slide, item.get("body", ""), x + .25, y + offset + 1.0,
-                  w - .5, body_height, body_size)
+        # Un-numbered cards centre short copy; a numbered step card keeps the
+        # body tight under its title so the number stays part of the header.
+        body_y = y + offset + (1.0 if numbered else 0.85)
+        self.text(slide, item.get("body", ""), x + .25, body_y,
+                  w - .5, body_height, body_size,
+                  anchor=None if numbered else MSO_ANCHOR.MIDDLE)
+        # A restrained base rule anchors short copy instead of leaving a card
+        # that looks like an unfilled template placeholder.
+        rule_y = y + h - (0.38 if compact else 0.66)
+        self.box(slide, x + .25, rule_y, min(w - .5, 1.0), .045, "accent")
+        if item.get("foot") and not compact:
+            self.text(slide, item["foot"], x + .25, y + h - .52, w - .5, .26, 11, "muted")
 
     def compose(self, slide, page):
         layout = page["layout"]
-        if layout in {"cover", "closing"}:
+        if layout == "image_hero":
+            self.hero_slide(slide, page)
+        elif layout == "image_overlay":
+            self.overlay_slide(slide, page)
+        elif layout == "image_wall":
+            self.wall_slide(slide, page)
+        elif layout in {"cover", "closing"}:
             image = page.get("image")
             width = 7.1 if image else 11.7
             self.text(slide, page.get("body", self.meta.get("subtitle", "")),
@@ -213,10 +448,14 @@ class DeckBuilder:
             columns = len(items) if len(items) <= 3 else 2
             rows = math.ceil(len(items) / columns)
             width = (12.1 - .25 * (columns - 1)) / columns
-            height = (4.55 - .25 * (rows - 1)) / rows
+            slot = (4.55 - .25 * (rows - 1)) / rows
+            # Fit the card to its copy instead of stretching a short card into
+            # an empty 4.5-inch shell; the group stays vertically centred.
+            height = min(slot, max(self._card_need(item, width) for item in items))
+            top = 2.05 + (4.55 - (height * rows + .25 * (rows - 1))) / 2
             for index, item in enumerate(items):
                 self.card(slide, item, .6 + (index % columns) * (width + .25),
-                          2.05 + (index // columns) * (height + .25), width, height)
+                          top + (index // columns) * (height + .25), width, height)
         elif layout == "process":
             items = page["items"]
             width = (12.1 - .4 * (len(items) - 1)) / len(items)
@@ -230,7 +469,8 @@ class DeckBuilder:
                     shape.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
                     shape.line.fill.background()
         elif layout == "image_split":
-            self.picture(slide, page["image"], .6, 2.05, 7.1, 4.55)
+            self.artwork(slide, page["image"], .6, 2.05, 7.1, 4.55,
+                         radius=.05, shadow=True)
             self.box(slide, 8.0, 2.05, 4.7, 4.55, rounded=True)
             self.text(slide, page.get("body", ""), 8.3, 2.4, 4.1, 3.8, 22)
         elif layout == "image_grid":
@@ -239,7 +479,8 @@ class DeckBuilder:
             height = (4.55 - .2 * (rows - 1)) / rows
             for index, item in enumerate(items):
                 x, y = .6 + (index % 2) * 6.2, 2.05 + (index // 2) * (height + .2)
-                self.picture(slide, item["image"], x, y, 5.9, height - .6)
+                self.artwork(slide, item["image"], x, y, 5.9, height - .62,
+                             radius=.04, shadow=True)
                 self.text(slide, item["title"], x, y + height - .48, 5.9, .45, 18, "accent", True)
         elif layout in {"chart", "chart_dashboard"}:
             top = 2.05 if page.get("subtitle") else 1.65
@@ -883,7 +1124,11 @@ def build(spec: dict, base: Path, output: Path) -> None:
     validate(spec, base)
     builder = DeckBuilder(spec, base)
     for index, page in enumerate(spec["slides"], 1):
-        slide = builder.new(page, index)
+        page.setdefault("index", index)
+        if page["layout"] in {"image_hero", "image_overlay"}:
+            slide = builder.blank(page, index)
+        else:
+            slide = builder.new(page, index)
         builder.compose(slide, page)
     output.parent.mkdir(parents=True, exist_ok=True)
     builder.prs.save(str(output))
@@ -1067,7 +1312,7 @@ def build_probation_deck(spec: dict, base: Path, template_path: Path, output: Pa
         builder.box(slide, .62, 1.0, 1.15, .06, "accent")
         if page.get("subtitle") and page.get("type") not in {"cover", "closing"}:
             builder.text(slide, page["subtitle"], 1.92, .85, 10.7, .28, 10.5, "muted")
-        builder.text(slide, spec["meta"].get("footer", ""), .55, 7.12, 10.5, .18, 8.5, "muted")
+        builder.text(slide, "人形机器人（上海）有限公司  |  轮臂-应用开发  |  赵文辉", .55, 7.12, 10.5, .18, 8.5, "muted")
         builder.text(slide, f"{index:02d}", 12.25, 7.08, .45, .22, 9, "muted")
         if page.get("type") == "cover":
             builder.text(slide, page.get("body", ""), .8, 1.8, 7.0, 2.5, 27, "accent", True)
