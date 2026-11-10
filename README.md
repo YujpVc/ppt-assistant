@@ -4,9 +4,15 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.5.0/ppt-assistant-1.5.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.5.0/ppt-assistant-1.5.0.tgz`。
+两个通道，内容同源；内网优先用私库，公网用 GitHub。
 
-包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
+- **公网（GitHub）**
+
+  ```bash
+  dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.5.0/ppt-assistant-1.5.0.tgz
+  ```
+
+装完新建会话并选择 **PPT 助手**。包名为 `@rx01334/ppt-assistant`，通过 GitHub 与内网 GitHub 双通道分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
 此包保留原有 PPT 助手提示词和工具组合，同时附带 Python 生成引擎和通用主题资源；不复制用户配置、API 密钥、机构模板、机构 Logo、历史会话或生成的文件。提示词沿用原来的引擎发现规则：`deepseek-harness/ppt-assistant`、`~/ppt-assistant` 或安装后的 `node_modules/@rx01334/ppt-assistant`。
 
