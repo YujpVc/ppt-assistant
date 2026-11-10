@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "chart",
-           "image_split", "image_grid", "image_triptych", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -205,6 +205,16 @@ def validate(spec: dict, base: Path) -> None:
         if layout in {"cutout_statement", "image_arch"}:
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: {layout} requires an image")
+            assets = [slide]
+        if layout == "image_band":
+            if not slide.get("image"):
+                raise ValueError(f"slide {index}: image_band requires an image")
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: image_band requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
+                   for item in items):
+                raise ValueError(f"slide {index}: every image_band item requires title and body")
             assets = [slide]
         if layout in {"image_panel", "image_panel_strip"}:
             if not slide.get("image"):
@@ -1315,6 +1325,35 @@ class DeckBuilder:
                 else:
                     self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
                               13, "muted")
+        elif layout == "image_band":
+            items = page["items"]
+            self.artwork(slide, page["image"], 0, 0, 13.333, 4.55, radius=0.0,
+                         scrim={"direction": "bottom", "color": "0B1324",
+                                "start": .28, "end": 1.0, "opacity": .94})
+            if page.get("kicker"):
+                self.text(slide, str(page["kicker"]).upper(), .65, 1.05, 6.0, .26,
+                          9.5, "B98A63", True)
+            self.text(slide, page["title"], .65, 1.44, 8.6, 1.16,
+                      page.get("title_size", 30), "FFFFFF", True, font=self.head_font)
+            if page.get("body"):
+                self.text(slide, page["body"], .65, 2.78, 7.4, .78, 13.5, "DCE8F6")
+            self.box(slide, .60, 4.55, 12.1, .012, "B04A2A")
+            for index, item in enumerate(items):
+                x = .65 + index * 4.05
+                self.text(slide, f"{index + 1:02d}", x, 4.74, .55, .24,
+                          9, "accent", True)
+                self.text(slide, item["title"], x, 4.98, 3.65, .36,
+                          16.5, "text", True)
+                self.text(slide, item["body"], x, 5.40, 3.65, .86,
+                          12.5, "muted")
+                if item.get("value"):
+                    self.text(slide, str(item["value"]), x, 6.28, 1.9, .44,
+                              20, "accent", True, font=self.head_font)
+                    if item.get("label"):
+                        self.text(slide, str(item["label"]), x + 1.72, 6.38,
+                                  1.8, .26, 8.5, "muted")
+            if page.get("source"):
+                self.text(slide, page["source"], .65, 6.95, 11.9, .24, 8.5, "muted")
         elif layout in {"image_panel", "image_panel_strip"}:
             side = page.get("side", "left")
             dense = bool(page.get("dense"))

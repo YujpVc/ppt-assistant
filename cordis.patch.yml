@@ -84,9 +84,16 @@
 
                 ACADEMIC & GRANT — 学术/基金 5 页先过评审问题，不搬论文小节
                 - 场景命中「国自然 / 基金 / 研究方案 / 特色创新 / 论文评审」时，主配方选 `grant`；标题用判断句，正文 ≥18pt；禁止把 `3.1.4.1`、`4.4` 这类论文编号带上屏。
-                - 5 页骨架：封面 → 总体路线（`architecture`，技术蓝图 + 验证跑道）→ 机制 1（`image_panel` dense）→ 机制 2（`image_panel_strip` dense）→ 创新与验证（`kpi_showcase`/`pillars`）。每页只回答一个评审问题。
+                - 5 页骨架：封面 → 总体路线（`architecture`，技术蓝图 + 验证跑道）→ 机制 1（`image_band` 满幅图 + 底部证据栏）→ 机制 2（`image_panel_strip` dense）→ 创新与验证（`kpi_showcase`/`pillars`）。每页只回答一个评审问题。
                 - 不要用 2×4 长句表把创新点全塞进去；拆成 3 个创新支柱，每个配 1–2 个验证指标。
                 - 「三条主线 / 四级验证」要落到图上：三条主线用 `architecture` 的三框，四级验证放底部一条证据带，不用正文复述。
+
+                IMAGE CRAFT — 图片不是只有“左图右文”
+                - 首选 `image_band`：满幅图铺满上半页，底部 35–45% 渐变蒙版，标题/主张压在蒙版上，下半页三栏证据；比左右二分更满、更像杂志。
+                - 次选 `image_panel` / `image_panel_strip`：一侧满幅图，一侧实心纸面；`dense: true` 放 5 条要点 + 3 指标，别只放 3 条。
+                - 破形/拱窗用 `image_arch`，主体抠图用 `cutout_statement`，图片填字用 `image_statement`；一套最多 1–2 页，别整本炫技。
+                - 同页最多一张主图 + 一个小 `inset` 细节；不要三张等权图把版面切碎。渐变颜色从图片暗部采样，文字不压在亮部。
+                - 参考 B 站「旁门左道」一张图一段话四法（二分 / 布尔 / 蒙版 / 毛玻璃，BV1GtQ7YuEhK）与「一张图做整套」（裁剪 / 抠图 / 填字 / 形状，BV1yQ4y1r7kQ）；LibreOffice 不稳定的 2.5D/毛玻璃不硬上。
 
                 ACADEMIC IMAGE POLICY — 学术稿不能只有字
                 - 5 页里至少 3 页有图；没有实拍就调用 `gen_image.py` 生实验室/机器人/愈伤组织场景，不许交纯文字稿。
@@ -112,7 +119,7 @@
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_panel / comparison / image_split / image_grid / table / chart / closing，
+                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_band / image_panel / image_panel_strip / comparison / image_split / image_grid / table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
