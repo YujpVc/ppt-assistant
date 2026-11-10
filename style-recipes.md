@@ -164,6 +164,7 @@
 版式池：`image_hero` `architecture` `image_panel` `kpi_showcase` `sequence` `pillars` `table` `closing`
 骨架：封面 → 总体路线（三段共用一套状态）→ 规程解析/规划 → 执行证据/记忆恢复 → 创新点与验证指标
 避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据。
+- **表格纪律**：`table` 只给真正的二维数值矩阵；验收层级/挑战/机制用 `pillars`/`sequence`/`image_panel`。
 
 ---
 

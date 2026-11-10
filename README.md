@@ -60,7 +60,7 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | `image_overlay` | 满幅图 + 单侧渐变面板，放正文、要点、数字 | `image` `side` `title` `body` `bullets` `stats` |
 | `image_wall` | 2–4 张瀑布流错位，圆角 + 细阴影 | `items[{image,title,body}]` |
 | `image_triptych` | 三图一主两辅：左大图 + 右双叠 | `items[3]{image,title,body}` |
-| `image_panel` | 一侧整幅图 + 一侧实心纸面：标题/正文/3 要点/2 指标 | `image` `side` `title` `body` `bullets` `stats` `source` |
+| `image_panel` | 一侧整幅图 + 一侧实心纸面：标题/正文/2–5 要点/2 指标 | `image` `side` `title` `body` `bullets` `stats` `source` |
 
 `image_split` / `image_grid` 也升级为满格裁切 + 圆角 + 软阴影。所有图片一律 cover 裁切、不留白边，蒙版颜色由图片暗部采样，文字区按页型自动避让。
 
@@ -69,8 +69,8 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | 版式 | 用途 | 关键字段 |
 | --- | --- | --- |
 | `architecture` | 3 层总体路线：深色主张带 + 大编号 + 细网格 + 回写环 + 验证跑道 | `items[3]{title,body}` `band` `loop` `steps` `bottom_title` |
-| `sequence` | 之字形主轴：3 步上下交替，适合机制/流程 | `items[3]{title,body,foot}` `bottom` |
-| `pillars` | 3 根深色柱头 + 纸面正文，适合并列机制 | `items[3]{title,body,foot}` `bottom` |
+| `sequence` | 之字形主轴：3–4 步上下交替，适合机制/流程 | `items[3–4]{title,body,foot}` `bottom` |
+| `pillars` | 3–4 根深色柱头 + 纸面正文，适合验收/并列机制 | `items[3–4]{title,body,foot}` `bottom` |
 
 学术/基金 deck 的总体路线优先用它重画，不把论文总图整张贴进来。
 
