@@ -509,11 +509,15 @@ class DeckBuilder:
         return media.grain(image, 0.028, seed=seed)
 
     def add_full(self, slide, picture):
-        return self._add_picture(slide, picture, 0, 0, 13.333333, 7.5)
+        # Full-bleed art has no transparency; JPEG keeps a 9-page deck small.
+        return self._add_picture(slide, picture, 0, 0, 13.333333, 7.5, jpeg=True)
 
-    def _add_picture(self, slide, picture, x, y, w, h, shadow=False):
+    def _add_picture(self, slide, picture, x, y, w, h, shadow=False, jpeg=False):
         payload = io.BytesIO()
-        picture.save(payload, "PNG")
+        if jpeg:
+            picture.convert("RGB").save(payload, "JPEG", quality=90)
+        else:
+            picture.save(payload, "PNG")
         payload.seek(0)
         shape = slide.shapes.add_picture(payload, Inches(x), Inches(y),
                                          Inches(w), Inches(h))
