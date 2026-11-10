@@ -846,6 +846,7 @@ class DeckBuilder:
         subject = self._load_alpha(page["image"])
         if page.get("flip"):
             subject = ImageOps.mirror(subject)
+        subject = media.defringe(subject, 1)
         box = subject.getbbox()
         if box:
             subject = subject.crop(box)
@@ -879,7 +880,7 @@ class DeckBuilder:
             sx = tx + position * 2.25
             self.text(slide, str(stat.get("value", "")), sx, 6.02, 1.9, 0.55, 28, accent, True)
             self.text(slide, str(stat.get("label", "")), sx, 6.55, 1.9, 0.26, 10, muted)
-        subject = media.drop_shadow(subject, blur=20, offset=(0, 14), opacity=0.5)
+        subject = media.drop_shadow(subject, blur=26, offset=(0, 16), opacity=0.34)
         self._add_picture(slide, subject, x, y, width, height)
 
     def annotated_slide(self, slide, page):

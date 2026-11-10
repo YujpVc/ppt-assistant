@@ -389,6 +389,16 @@ def halftone(image: Image.Image, spacing: int = 7, angle: float = 0.0) -> Image.
     return out.rotate(-angle, expand=False)
 
 
+def defringe(image: Image.Image, pixels: int = 1) -> Image.Image:
+    """Erode the alpha edge by a pixel or two to remove the white matte halo."""
+    base = image.convert("RGBA")
+    if pixels <= 0:
+        return base
+    alpha = base.getchannel("A").filter(ImageFilter.MinFilter(2 * pixels + 1))
+    base.putalpha(alpha)
+    return base
+
+
 def drop_shadow(image: Image.Image, blur: float = 16.0, offset: tuple[int, int] = (0, 10),
                 opacity: float = 0.45) -> Image.Image:
     """Bake a soft alpha shadow behind a cutout (renderer-independent)."""
