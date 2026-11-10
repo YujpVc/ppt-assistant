@@ -20,7 +20,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.shapes import MSO_CONNECTOR
-from pptx.enum.text import MSO_ANCHOR
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -33,7 +33,9 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
 
 LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
            "image_split", "image_grid", "chart_dashboard", "closing",
-           "image_hero", "image_overlay", "image_wall"}
+           "image_hero", "image_overlay", "image_wall",
+           "section_number", "image_statement", "image_stack",
+           "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase"}
 THEMES = {
     "midnight": {"bg": "0B1324", "panel": "17243B", "text": "F7FBFF",
                  "muted": "B2C2D9", "accent": "48CAE4"},
@@ -60,6 +62,9 @@ def validate(spec: dict, base: Path) -> None:
         text = str(value).strip().lstrip("#")
         if len(text) != 6 or any(char not in "0123456789ABCDEFabcdef" for char in text):
             raise ValueError(f"meta.colors.{key} must be a 6-digit hex color")
+    effect = spec["meta"].get("transition")
+    if effect not in {None, "fade", "push", "morph"}:
+        raise ValueError("meta.transition must be fade, push or morph")
     accent = spec["meta"].get("accent")
     if accent is not None:
         text = str(accent).strip().lstrip("#")
@@ -91,9 +96,37 @@ def validate(spec: dict, base: Path) -> None:
             if any(not isinstance(item, dict) or not item.get("title") for item in items):
                 raise ValueError(f"slide {index}: each item requires a title")
         assets = [slide] if layout in {"cover", "image_split", "image_hero",
-                                       "image_overlay"} else []
+                                       "image_overlay", "image_statement",
+                                       "glass_overlay", "split_diagonal"} else []
         if layout == "image_grid":
             assets = slide["items"]
+        if layout == "section_number" and slide.get("image"):
+            assets = [slide]
+            if slide.get("art") != "image":
+                raise ValueError(f"slide {index}: section_number art must be image when image is set")
+        if layout in {"section_number", "image_statement"}:
+            if slide.get("art", "gradient") not in {"gradient", "outline", "image"}:
+                raise ValueError(f"slide {index}: art must be gradient, outline or image")
+        if layout == "split_diagonal":
+            images = slide.get("images")
+            if not isinstance(images, list) or len(images) != 2:
+                raise ValueError(f"slide {index}: split_diagonal requires images: [a, b]")
+            assets = [{"image": item} for item in images]
+        if layout == "image_stack":
+            items = slide.get("items")
+            if not isinstance(items, list) or not 2 <= len(items) <= 4:
+                raise ValueError(f"slide {index}: image_stack requires 2–4 items")
+            if any(not isinstance(item, dict) or not item.get("image") for item in items):
+                raise ValueError(f"slide {index}: every stack item requires an image")
+            assets = items
+        if layout == "quote_stage" and not str(slide.get("quote", "")).strip():
+            raise ValueError(f"slide {index}: quote_stage requires quote text")
+        if layout == "kpi_showcase":
+            stats = slide.get("stats")
+            if not isinstance(stats, list) or not 2 <= len(stats) <= 3:
+                raise ValueError(f"slide {index}: kpi_showcase requires 2–3 stats")
+            if any(not isinstance(item, dict) or not item.get("value") for item in stats):
+                raise ValueError(f"slide {index}: every stat requires value")
         if layout == "image_wall":
             items = slide.get("items")
             if not isinstance(items, list) or not 2 <= len(items) <= 4:
@@ -192,16 +225,23 @@ class DeckBuilder:
         color_value = self.colors.get(color, color)
         shape.fill.fore_color.rgb = RGBColor.from_string(color_value)
         shape.line.fill.background()
+        shape.shadow.inherit = False
+        # Drop the theme style reference: an empty effectLst is not enough for
+        # every renderer, and the theme shadow made thin rules look embossed.
+        style = shape._element.find(qn("p:style"))
+        if style is not None:
+            shape._element.remove(style)
         return shape
 
     def text(self, slide, value, x, y, w, h, size=21, color="text", bold=False,
-             anchor=None):
+             anchor=None, align=None, tracking=None):
         """Fit text conservatively; reject dense content instead of shrinking it."""
         value = str(value)
         if not value.strip():
             return None
+        plain = value.replace("**", "")
         lines = sum(max(1, math.ceil(sum(1 if ord(c) > 0x2E80 else .55 for c in line)
-                                    / (w * 72 / size))) for line in value.split("\n"))
+                                    / (w * 72 / size))) for line in plain.split("\n"))
         if lines * size * 1.25 + max(0, len(value.split("\n")) - 1) * 8 > h * 72:
             raise ValueError(f"text exceeds layout capacity; split or shorten: {value[:60]}")
         shape = slide.shapes.add_textbox(Inches(x), Inches(y), Inches(w), Inches(h))
@@ -210,17 +250,27 @@ class DeckBuilder:
         if anchor is not None:
             frame.vertical_anchor = anchor
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = 0
+        base_color = self.colors.get(color, color)
         for index, line in enumerate(value.split("\n")):
             paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
             paragraph.space_after = Pt(8)
             paragraph.line_spacing = 1.2
-            run = paragraph.add_run()
-            run.text = line
-            run.font.name, run.font.size, run.font.bold = self.font, Pt(size), bold
-            color_value = self.colors.get(color, color)
-            run.font.color.rgb = RGBColor.from_string(color_value)
-            east_asian = run._r.get_or_add_rPr().makeelement(qn("a:ea"), {"typeface": self.font})
-            run._r.get_or_add_rPr().append(east_asian)
+            if align is not None:
+                paragraph.alignment = align
+            for part_index, part in enumerate(line.split("**")):
+                if not part:
+                    continue
+                emphasis = part_index % 2 == 1
+                run = paragraph.add_run()
+                run.text = part
+                run.font.name, run.font.size = self.font, Pt(size)
+                run.font.bold = bold or emphasis
+                if tracking is not None:
+                    run._r.get_or_add_rPr().set("spc", str(int(tracking)))
+                run.font.color.rgb = RGBColor.from_string(
+                    self.colors["accent"] if emphasis else base_color)
+                east_asian = run._r.get_or_add_rPr().makeelement(qn("a:ea"), {"typeface": self.font})
+                run._r.get_or_add_rPr().append(east_asian)
         return shape
 
     def picture(self, slide, filename, x, y, w, h, crop=None):
@@ -249,7 +299,7 @@ class DeckBuilder:
             return ImageOps.exif_transpose(source).convert("RGB")
 
     def artwork(self, slide, filename, x, y, w, h, *, radius=0.0,
-                scrim=None, shadow=False, dpi=160):
+                scrim=None, shadow=False, dpi=160, treatment=None):
         """Place a picture as designed artwork: crop-to-fill, never letterboxed.
 
         ``radius`` rounds the corners (ratio of the short edge), ``scrim`` is a
@@ -257,6 +307,13 @@ class DeckBuilder:
         """
         picture = media.cover(self._load(filename),
                               (max(1, int(w * dpi)), max(1, int(h * dpi))))
+        if treatment == "mono":
+            picture = ImageOps.grayscale(picture).convert("RGB")
+        elif treatment == "duotone":
+            picture = media.duotone(picture, dark=self.colors["bg"],
+                                    light="E8F6FA", strength=0.85)
+        elif treatment == "halftone":
+            picture = media.halftone(picture, spacing=6)
         if scrim:
             picture = media.apply_scrim(picture, **scrim)
         if radius:
@@ -269,11 +326,9 @@ class DeckBuilder:
             _soft_shadow(shape)
         return shape
 
-    def full_bleed(self, slide, filename, *, scrim=None, color=None,
-                   start=0.0, end=0.82, gamma=1.2, opacity=0.94,
-                   vignette=0.0, focus=(0.5, 0.5), veil=0.0):
-        """A 16:9 picture that covers the whole slide and melts into a color."""
-        w, h = 13.333333, 7.5
+    def _bleed_image(self, filename, *, scrim=None, color=None,
+                     start=0.0, end=0.82, gamma=1.2, opacity=0.94,
+                     vignette=0.0, focus=(0.5, 0.5), veil=0.0, grain=0.03):
         picture = media.cover(self._load(filename), (1920, 1080), centering=focus)
         tone = (media.parse_color(color) if color
                 else media.sample_ink(picture, mix=0.45, mix_color=self.colors["bg"]))
@@ -285,11 +340,23 @@ class DeckBuilder:
                                         opacity=opacity)
         if vignette:
             picture = media.vignette(picture, strength=vignette)
-        payload = io.BytesIO()
-        picture.convert("RGB").save(payload, "JPEG", quality=92)
-        payload.seek(0)
-        slide.shapes.add_picture(payload, Inches(0), Inches(0), Inches(w), Inches(h))
-        return media.to_hex(tone)
+        if grain:
+            picture = media.grain(picture, grain)
+        return picture
+
+    def full_bleed(self, slide, filename, *, scrim=None, color=None,
+                   start=0.0, end=0.82, gamma=1.2, opacity=0.94,
+                   vignette=0.0, focus=(0.5, 0.5), veil=0.0, grain=0.03):
+        """A 16:9 picture that covers the whole slide and melts into a color."""
+        picture = self._bleed_image(filename, scrim=scrim, color=color, start=start,
+                                    end=end, gamma=gamma, opacity=opacity,
+                                    vignette=vignette, focus=focus, veil=veil,
+                                    grain=grain)
+        self.add_full(slide, picture)
+        tone = (color if isinstance(color, str) and len(color) == 6
+                else media.to_hex(media.sample_ink(picture, mix=0.45,
+                                                   mix_color=self.colors["bg"])))
+        return tone.upper()
 
     def blank(self, page, index):
         """A slide without the standard title band (full-bleed compositions)."""
@@ -328,7 +395,7 @@ class DeckBuilder:
             x, y, w = 0.95, 1.95, 6.6
         kicker = page.get("kicker")
         if kicker:
-            self.text(slide, str(kicker).upper(), x, y - 0.55, w, 0.32, 12, accent, True)
+            self.text(slide, str(kicker).upper(), x, y - 0.55, w, 0.32, 12, accent, True, tracking=160)
             self.box(slide, x, y - 0.16, 0.62, 0.045, accent)
         title = self.text(slide, page["title"], x, y, w, 2.15,
                           page.get("title_size", 42 if side != "bottom" else 38),
@@ -409,6 +476,327 @@ class DeckBuilder:
                 self.text(slide, item["body"], left, top + height + 0.46, width, 0.3,
                           11, "muted")
 
+
+    # ── editorial system: mesh backgrounds, type art, layered compositions ──
+
+    def _dark(self) -> bool:
+        return self.meta.get("theme", "midnight") == "midnight"
+
+    def _blend(self, first, second, ratio: float) -> str:
+        a, b = media.parse_color(first), media.parse_color(second)
+        return media.to_hex(tuple(int(round(x * (1 - ratio) + y * ratio))
+                                  for x, y in zip(a, b)))
+
+    def _mesh_colors(self) -> list[str]:
+        accent, background = self.colors["accent"], self.colors["bg"]
+        if self._dark():
+            return [background, self._blend(background, accent, 0.14),
+                    self._blend(accent, background, 0.70),
+                    self._blend(background, "000000", 0.55)]
+        return [background, self._blend(background, accent, 0.05),
+                self._blend(accent, "FFFFFF", 0.78),
+                self._blend(background, "FFFFFF", 0.58)]
+
+    def background_image(self, *, grid: bool = False, seed: int = 7,
+                         palette: list[str] | None = None):
+        image = media.mesh_gradient((1920, 1080), palette or self._mesh_colors(),
+                                    seed=seed, blur=170)
+        if grid:
+            image = media.rule_grid(image, spacing=88,
+                                    color="FFFFFF" if self._dark() else "0B1324",
+                                    opacity=0.035)
+        image = media.vignette(image, 0.30 if self._dark() else 0.10)
+        return media.grain(image, 0.028, seed=seed)
+
+    def add_full(self, slide, picture):
+        return self._add_picture(slide, picture, 0, 0, 13.333333, 7.5)
+
+    def _add_picture(self, slide, picture, x, y, w, h, shadow=False):
+        payload = io.BytesIO()
+        picture.save(payload, "PNG")
+        payload.seek(0)
+        shape = slide.shapes.add_picture(payload, Inches(x), Inches(y),
+                                         Inches(w), Inches(h))
+        if shadow:
+            _soft_shadow(shape)
+        return shape
+
+    def type_art(self, slide, text, box, *, mode="gradient", image=None,
+                 opacity: float = 1.0, color=None):
+        """Place decorative display type (numerals / short words) inside a box."""
+        font_size = 520
+        if isinstance(image, str):
+            image = self._load(image)
+        accent = color or self.colors["accent"]
+        if mode == "outline":
+            art = media.text_art(text, font_size, stroke=max(3, font_size // 90),
+                                 stroke_color=accent)
+        elif mode == "image" and image is not None:
+            art = media.text_art(text, font_size, image=image, outline=2,
+                                 outline_color=self.colors["accent"])
+        else:
+            art = media.text_art(text, font_size,
+                                 fill=[accent, self._blend(accent, "FFFFFF", 0.55)])
+        if opacity < 1:
+            channel = art.getchannel("A").point(lambda value: int(value * opacity))
+            art.putalpha(channel)
+        x, y, w, h = box
+        ratio = min(w / art.width, h / art.height)
+        width, height = art.width * ratio, art.height * ratio
+        return self._add_picture(slide, art, x + (w - width) / 2,
+                                 y + (h - height) / 2, width, height)
+
+    def section_number_slide(self, slide, page):
+        dark = self._dark()
+        index = page.get("index", 1)
+        self.add_full(slide, self.background_image(grid=True, seed=index))
+        number = str(page.get("number", f"{index:02d}"))
+        art_mode = page.get("art", "gradient")
+        self.type_art(slide, number, (-0.55, 1.05, 6.3, 5.45),
+                      mode=art_mode,
+                      image=page.get("image") if art_mode == "image" else None,
+                      opacity=page.get("art_opacity", 0.92))
+        text_color = self.colors["text"]
+        muted = "AFC3DA" if dark else self.colors["muted"]
+        accent = "7FE3F0" if dark else self.colors["accent"]
+        x, w = 6.55, 6.05
+        kicker = str(page.get("kicker", f"SECTION {number}")).upper()
+        self.text(slide, kicker, x, 1.42, w, 0.3, 12, accent, True, tracking=180)
+        self.text(slide, page["title"], x, 1.86, w, 2.0,
+                  page.get("title_size", 40), text_color, True)
+        self.box(slide, x, 4.06, 0.72, 0.05, accent)
+        cursor = 4.3
+        if page.get("body"):
+            self.text(slide, page["body"], x, cursor, w, 0.9, 17, muted)
+            cursor += 0.95
+        for position, item in enumerate((page.get("items") or [])[:4]):
+            y = cursor + position * 0.5
+            self.text(slide, f"{position + 1:02d}", x, y, 0.5, 0.26, 11, accent, True)
+            self.text(slide, item, x + 0.55, y - 0.02, w - 0.55, 0.34, 15, text_color)
+        if page.get("transition"):
+            self.text(slide, page["transition"], x, 6.75, w, 0.3, 12, muted)
+        total = page.get("sections")
+        if isinstance(total, int) and total > 1:
+            current = int(page.get("section_no", 1))
+            for dot in range(total):
+                filled = dot == current - 1
+                self.box(slide, 11.35 + dot * 0.28, 6.86, 0.12, 0.12,
+                         accent if filled else ("3A4E66" if dark else "D9E2EE"))
+
+    def statement_slide(self, slide, page):
+        side = page.get("scrim", "left")
+        ink = page.get("ink", "light")
+        color = page.get("scrim_color")
+        if color is None and ink == "dark":
+            color = "F7FBFF"
+        self.full_bleed(slide, page["image"], scrim=side, color=color,
+                        end=page.get("scrim_end", 0.82),
+                        opacity=page.get("scrim_opacity",
+                                         0.90 if ink == "dark" else 0.94),
+                        vignette=0.15,
+                        veil=page.get("veil", 0.42 if ink == "dark" else 0.0))
+        text_light = ink == "light"
+        title_color = "FFFFFF" if text_light else self.colors["text"]
+        muted = "CBD9EA" if text_light else self.colors["muted"]
+        accent = "7FE3F0" if text_light else self.colors["accent"]
+        left_text = side == "left"
+        if side == "bottom":
+            x, w, y = 0.95, 9.6, 3.55
+            art_box = (9.55, 1.05, 3.3, 2.55)
+        elif left_text:
+            x, w, y = 0.95, 5.9, 1.95
+            art_box = (-0.65, 1.25, 6.0, 4.95)
+        else:
+            x, w, y = 7.0, 5.45, 1.95
+            art_box = (8.4, 1.25, 6.0, 4.95)
+        self.type_art(slide, str(page.get("art_text", page.get("number", ""))),
+                      art_box, mode=page.get("art", "gradient"),
+                      image=page["image"] if page.get("art") == "image" else None,
+                      opacity=page.get("art_opacity", 0.20))
+        if page.get("kicker"):
+            self.text(slide, str(page["kicker"]).upper(), x, y - 0.52, w, 0.3, 12, accent, True, tracking=160)
+            self.box(slide, x, y - 0.16, 0.62, 0.045, accent)
+        self.text(slide, page["title"], x, y, w, 2.0,
+                  page.get("title_size", 40 if side != "bottom" else 36),
+                  title_color, True)
+        if page.get("body"):
+            self.text(slide, page["body"], x, y + 2.2, w, 1.3, 18, muted)
+        meta = page.get("meta") or self.meta.get("author", "")
+        if meta:
+            self.text(slide, meta, x, 6.78, w, 0.32, 12, muted)
+
+    def stack_slide(self, slide, page):
+        items = page["items"]
+        count = len(items)
+        layouts = {
+            2: ((0.85, 2.0, 5.5, 3.9), (6.75, 2.4, 5.5, 3.9), (-4, 3)),
+            3: ((0.65, 2.05, 4.15, 3.7), (4.6, 1.85, 4.15, 3.95), (8.55, 2.35, 4.15, 3.65),
+                (-5, 2, -3)),
+            4: ((0.55, 2.1, 3.05, 3.1), (3.85, 1.9, 3.05, 3.35),
+                (7.15, 2.2, 3.05, 3.15), (10.45, 1.95, 3.05, 3.3),
+                (-6, 2, -4, 3)),
+        }
+        boxes = layouts[count][:count]
+        rotations = layouts[count][-1]
+        for index, item in enumerate(items):
+            x, y, w, h = boxes[index]
+            shape = self.artwork(slide, item["image"], x, y, w, h,
+                                 radius=0.035, shadow=True,
+                                 treatment=item.get("treatment"))
+            shape.rotation = rotations[index]
+            if item.get("title"):
+                self.text(slide, item["title"], x + 0.05, 6.42,
+                          w - 0.1, 0.3, 13, "text", True)
+            if item.get("body"):
+                self.text(slide, item["body"], x + 0.05, 6.72,
+                          w - 0.1, 0.26, 9, "muted")
+
+    def diagonal_slide(self, slide, page):
+        left, right = page["images"]
+        background = media.diagonal_split(
+            self._load(left), self._load(right), (1920, 1080),
+            split=page.get("split", 0.58), lean=page.get("lean", 0.16),
+            seam=page.get("seam", self.colors["accent"]), seam_width=5)
+        background = media.apply_scrim(background, color="0B1224",
+                                       direction="bottom", start=0.42, end=1.0,
+                                       gamma=1.4, opacity=0.78)
+        background = media.grain(background, 0.03)
+        self.add_full(slide, background)
+        x, w = 0.95, 8.6
+        if page.get("kicker"):
+            self.text(slide, str(page["kicker"]).upper(), x, 4.02, w, 0.3, 12, "7FE3F0", True)
+        self.text(slide, page["title"], x, 4.35, w, 1.5,
+                  page.get("title_size", 38), "FFFFFF", True)
+        if page.get("body"):
+            self.text(slide, page["body"], x, 5.92, 6.5, 0.55, 16, "CBD9EA")
+        labels = page.get("labels") or []
+        for index, label in enumerate(labels[:2]):
+            lx = 0.95 if index == 0 else 10.0
+            self.box(slide, lx, 6.55, 0.34, 0.05, "7FE3F0")
+            self.text(slide, label, lx + 0.48, 6.42, 2.9, 0.3, 12, "FFFFFF", True)
+
+    def glass_slide(self, slide, page):
+        ink = page.get("ink", "light" if self._dark() else "dark")
+        background = self._bleed_image(page["image"], scrim=None, vignette=0.10,
+                                       grain=page.get("grain", 0.03))
+        self.add_full(slide, background)
+        x, y, w, h = 7.55, 1.35, 5.15, 5.05
+        scale = 1920 / 13.333333
+        dark = self._dark()
+        panel = media.frosted(background, (int(x * scale), int(y * scale),
+                                           int((x + w) * scale), int((y + h) * scale)),
+                              radius=0.055,
+                              tint=page.get("glass_tint",
+                                            self.colors["bg"] if dark else "FFFFFF"),
+                              opacity=page.get("glass_opacity", 0.34 if dark else 0.22),
+                              blur=30, border=0.35)
+        self._add_picture(slide, panel, x, y, w, h)
+        light = ink == "light"
+        title_color = "FFFFFF" if light else self.colors["text"]
+        body_color = "DCE8F6" if light else self.colors["text"]
+        muted = "AFC3DA" if light else self.colors["muted"]
+        accent = "7FE3F0" if light else self.colors["accent"]
+        tx, tw = x + 0.38, w - 0.76
+        self.box(slide, tx, y + 0.34, 0.55, 0.045, accent)
+        cursor = y + 0.55
+        if page.get("kicker"):
+            self.text(slide, str(page["kicker"]).upper(), tx, cursor, tw, 0.3, 11, accent, True)
+            cursor += 0.38
+        self.text(slide, page["title"], tx, cursor, tw, 1.35,
+                  page.get("title_size", 29), title_color, True)
+        cursor += 1.42
+        if page.get("body"):
+            self.text(slide, page["body"], tx, cursor, tw, 1.15, 16, body_color)
+            cursor += 1.2
+        stats = page.get("stats") or []
+        if stats:
+            stat_y = y + h - 1.35
+            span = tw / len(stats)
+            for index, stat in enumerate(stats[:3]):
+                sx = tx + index * span
+                self.text(slide, str(stat.get("value", "")), sx, stat_y,
+                          span - 0.15, 0.6, 26, accent, True)
+                self.text(slide, str(stat.get("label", "")), sx, stat_y + 0.55,
+                          span - 0.15, 0.3, 10, muted)
+        if page.get("source"):
+            self.text(slide, page["source"], x + 0.38, y + h - 0.32, w - 0.76, 0.24,
+                      9, muted)
+
+    def quote_slide(self, slide, page):
+        dark = self._dark()
+        background = self.background_image(grid=page.get("grid", False),
+                                           seed=page.get("index", 1))
+        accent = self.colors["accent"]
+        layer = Image.new("RGBA", background.size, (0, 0, 0, 0))
+        font = media.display_font(560)
+        if font is not None:
+            ImageDraw.Draw(layer).text((70, 20), "“", font=font,
+                                       fill=media.parse_color(accent) + (52,))
+            background = Image.alpha_composite(background.convert("RGBA"), layer)
+        self.add_full(slide, background)
+        text_color = self.colors["text"]
+        muted = "AFC3DA" if dark else self.colors["muted"]
+        self.text(slide, page["quote"], 1.55, 2.05, 10.2, 2.7,
+                  page.get("quote_size", 34), text_color, True,
+                  align=PP_ALIGN.CENTER)
+        self.box(slide, 5.95, 5.12, 1.45, 0.04, accent)
+        if page.get("by"):
+            self.text(slide, page["by"], 1.55, 5.4, 10.2, 0.4, 15, muted,
+                      align=PP_ALIGN.CENTER)
+        if page.get("title"):
+            self.text(slide, page["title"], 1.55, 1.35, 10.2, 0.42, 11,
+                      accent, True, align=PP_ALIGN.CENTER)
+
+    def kpi_slide(self, slide, page):
+        dark = self._dark()
+        background = self.background_image(grid=False, seed=page.get("index", 1))
+        background = media.dot_grid(background, spacing=26,
+                                    color="FFFFFF" if dark else "0B1324",
+                                    opacity=0.07)
+        self.add_full(slide, background)
+        text_color = self.colors["text"]
+        muted = "AFC3DA" if dark else self.colors["muted"]
+        accent = "7FE3F0" if dark else self.colors["accent"]
+        self.text(slide, str(page.get("kicker", "")).upper(), 0.95, 1.0, 6.0, 0.3,
+                  12, accent, True, tracking=160)
+        self.text(slide, page["title"], 0.95, 1.4, 10.6, 1.2,
+                  page.get("title_size", 32), text_color, True)
+        stats = page["stats"]
+        top = 3.0
+        span = 12.0 / len(stats)
+        for index, stat in enumerate(stats):
+            x = 0.95 + index * span
+            raw = str(stat.get("value", ""))
+            size = 64 if len(raw) <= 4 else 50 if len(raw) <= 7 else 42
+            self.text(slide, raw, x, top, span - 0.6, 1.15, size, accent, True)
+            self.text(slide, str(stat.get("label", "")), x, top + 1.18, span - 0.6,
+                      0.34, 14, text_color)
+            if stat.get("note"):
+                self.text(slide, str(stat["note"]), x, top + 1.58, span - 0.6,
+                          0.6, 11, muted)
+            share = stat.get("share")
+            self.box(slide, x, top + 2.28, span - 0.8, 0.05, "2A3E55" if dark else "D9E2EE")
+            if isinstance(share, (int, float)):
+                ratio = min(1.0, max(0.0, float(share)))
+                self.box(slide, x, top + 2.28,
+                         max(0.2, (span - 0.8) * ratio), 0.05, accent)
+            if index:
+                self.box(slide, x - 0.35, top + 0.05, 0.012, 1.7, "3A4E66" if dark else "D9E2EE")
+        if page.get("source"):
+            self.text(slide, page["source"], 0.95, 6.65, 11.4, 0.26, 10, muted)
+
+    def transition(self, slide, kind: str):
+        element = slide._element
+        for old in element.findall(qn("p:transition")):
+            element.remove(old)
+        transition = element.makeelement(qn("p:transition"), {})
+        transition.append(element.makeelement(qn(f"p:{kind}"), {}))
+        extension = element.find(qn("p:extLst"))
+        if extension is not None:
+            extension.addprevious(transition)
+        else:
+            element.append(transition)
+
     def new(self, page, index):
         slide = self.prs.slides.add_slide(self.prs.slide_layouts[6])
         slide.background.fill.solid()
@@ -473,6 +861,20 @@ class DeckBuilder:
         layout = page["layout"]
         if layout == "image_hero":
             self.hero_slide(slide, page)
+        elif layout == "section_number":
+            self.section_number_slide(slide, page)
+        elif layout == "image_statement":
+            self.statement_slide(slide, page)
+        elif layout == "image_stack":
+            self.stack_slide(slide, page)
+        elif layout == "split_diagonal":
+            self.diagonal_slide(slide, page)
+        elif layout == "glass_overlay":
+            self.glass_slide(slide, page)
+        elif layout == "quote_stage":
+            self.quote_slide(slide, page)
+        elif layout == "kpi_showcase":
+            self.kpi_slide(slide, page)
         elif layout == "image_overlay":
             self.overlay_slide(slide, page)
         elif layout == "image_wall":
@@ -544,7 +946,7 @@ class DeckBuilder:
                         paragraph.font.color.rgb = RGBColor.from_string(self.colors["bg" if row_index == 0 else "text"])
                         for run in paragraph.runs:
                             run._r.get_or_add_rPr().append(run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
-        if page.get("source"):
+        if page.get("source") and layout not in {"glass_overlay", "kpi_showcase"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
@@ -1167,7 +1569,9 @@ def build(spec: dict, base: Path, output: Path) -> None:
     builder = DeckBuilder(spec, base)
     for index, page in enumerate(spec["slides"], 1):
         page.setdefault("index", index)
-        if page["layout"] in {"image_hero", "image_overlay"}:
+        if page["layout"] in {"image_hero", "image_overlay", "section_number",
+                              "image_statement", "split_diagonal", "glass_overlay",
+                              "quote_stage", "kpi_showcase"}:
             slide = builder.blank(page, index)
         else:
             slide = builder.new(page, index)
@@ -1175,6 +1579,9 @@ def build(spec: dict, base: Path, output: Path) -> None:
         # and gives the edit ledger something position-independent to match on.
         slide._element.cSld.set("name", page.get("id", f"P{index:02d}"))
         builder.compose(slide, page)
+        effect = spec["meta"].get("transition")
+        if effect:
+            builder.transition(slide, effect)
     output.parent.mkdir(parents=True, exist_ok=True)
     builder.prs.save(str(output))
 
