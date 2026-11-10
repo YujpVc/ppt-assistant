@@ -30,6 +30,16 @@ KINDS = {
 PALETTE = ['176C88', 'D97706', '6366F1', '2A9D8F', 'C0392B', '64748B']
 
 
+def palette(colors: dict) -> list[str]:
+    """Lead every chart with the deck's accent so brand color stays consistent."""
+    ordered = [colors.get('accent', PALETTE[0]), *PALETTE[1:]]
+    result = []
+    for color in ordered:
+        if color not in result:
+            result.append(color)
+    return result
+
+
 def _numeric(value):
     return type(value) in {int, float} and math.isfinite(value)
 
@@ -183,6 +193,7 @@ def resolve_chart(spec: dict, base: Path) -> dict:
 def draw_chart(slide, spec: dict, base: Path, box: tuple, font: str, colors: dict):
     """Add a native PowerPoint chart and its editable workbook; box uses inches."""
     spec = resolve_chart(spec, base)
+    chart_palette = palette(colors)
     kind = spec['kind']
     fmt = spec.get('number_format', '0.##')
     if kind in {'scatter', 'bubble'}:
@@ -259,7 +270,7 @@ def draw_chart(slide, spec: dict, base: Path, box: tuple, font: str, colors: dic
                 if 'stacked' in kind or kind.startswith('percent_'):
                     labels.font.color.rgb = RGBColor.from_string('FFFFFF')
     for i, series in enumerate(chart.series):
-        color = spec['series'][i].get('color', PALETTE[i])
+        color = spec['series'][i].get('color', chart_palette[i % len(chart_palette)])
         series.format.fill.solid()
         series.format.fill.fore_color.rgb = RGBColor.from_string(color)
         series.format.line.color.rgb = RGBColor.from_string(color)
@@ -274,7 +285,7 @@ def draw_chart(slide, spec: dict, base: Path, box: tuple, font: str, colors: dic
                 series.format.line.fill.background()
         if kind in {'pie', 'donut'} or (len(chart.series) == 1 and spec.get('highlight')):
             for j, point in enumerate(series.points):
-                point_color = PALETTE[j % len(PALETTE)] if kind in {'pie', 'donut'} else (
+                point_color = chart_palette[j % len(chart_palette)] if kind in {'pie', 'donut'} else (
                     colors['accent'] if spec['categories'][j] in spec['highlight'] else '94A3B8')
                 point.format.fill.solid()
                 point.format.fill.fore_color.rgb = RGBColor.from_string(point_color)

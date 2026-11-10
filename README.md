@@ -4,7 +4,7 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.1.0/ppt-assistant-1.1.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.1.0/ppt-assistant-1.1.0.tgz`。
+在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.2.0/ppt-assistant-1.2.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.2.0/ppt-assistant-1.2.0.tgz`。
 
 包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
@@ -27,7 +27,7 @@ bash run_py.sh build_deck.py template-spec.json output.pptx --template template.
 bash run_py.sh quality_check.py output.pptx --template template.pptx
 ```
 
-内置默认生成器支持原生可编辑文本、表格与图表。模板、Logo 由使用者显式提供，本包提供通用默认模板；旧版 `generate_ppt.py` 可用 `--template` 指定用户模板，不包含本机机构素材。生成质量取决于输入素材和逐页检查；没有运行视觉检查时不得声称已通过。
+内置默认生成器支持原生可编辑文本、表格与图表。`quality_check.py` 会拒绝「整页图片、没有可编辑文字」的稿——一键 AI 工具导出的图片 PPTX 不能作为交付。模板、Logo 由使用者显式提供，本包提供通用默认模板；旧版 `generate_ppt.py` 可用 `--template` 指定用户模板，不包含本机机构素材。生成质量取决于输入素材和逐页检查；没有运行视觉检查时不得声称已通过。
 
 ## 自主生图
 
@@ -53,10 +53,31 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 
 `image_split` / `image_grid` 也升级为满格裁切 + 圆角 + 软阴影。所有图片一律 cover 裁切、不留白边，蒙版颜色由图片暗部采样，文字区按页型自动避让。
 
+## 页计划与风格
+
+- 动笔前先写四行 style brief：用途与受众、气质、主色（只选一个）、图像风格。主色写进 `meta.accent`；需要换底色、面板或文字色时用 `meta.colors` 覆盖 `bg/panel/text/muted/accent`（6 位 hex）。
+- 每个正文页的标题必须是一句话结论（「执行率 88.5%，预算仍有余量」），不是名词短语。写 spec 前先列页计划：`页 / 结论句 / 证据 / 视觉类型 / 来源`。
+- 配色按 HSL 想：邻近色相做区分，同色相拉明度做层级，降饱和+提亮=莫兰迪；一页只留一个高饱和重点色。
+
+## 改稿合同（scoped edit）
+
+改现有 PPT 时不要直接动手，先立基线：
+
+```bash
+bash run_py.sh deck_baseline.py snapshot 原稿.pptx baseline.json
+# 修改工作副本 → 重建
+bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
+  --protect P01,P02,P05 --expect P03 --out ledger.md
+```
+
+- 稳定页名 `P01…` 写在 slide name 里，换序也不丢身份；台账按页列出标题、文字、数字、图片的变化。
+- 保护页被改、越权修改、缺页都会让命令以 exit 2 结束；交付时附上 `ledger.md`。
+- 数字逐位核对，不为了排版改精度；截图与交付文件版本必须一致。
+
 ## 打包
 
 ```bash
-npm pack          # 生成 @rx01334/ppt-assistant-1.1.0.tgz
+npm pack          # 生成 @rx01334/ppt-assistant-1.2.0.tgz
 ```
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。

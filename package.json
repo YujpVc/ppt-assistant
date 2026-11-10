@@ -1,11 +1,13 @@
 {
   "name": "@rx01334/ppt-assistant",
-  "version": "1.1.0",
-  "description": "PPT 助手 agent preset for DeepSeek Harness: generates, edits, renders and quality-checks editable PowerPoint decks, with autonomous GPT image generation and full-bleed/gradient image layouts.",
+  "version": "1.2.0",
+  "description": "PPT 助手 agent preset for DeepSeek Harness: plan-first editable decks with autonomous GPT imagery, full-bleed gradient layouts, brand palettes, and a verified scoped-edit change ledger.",
   "license": "MIT",
   "private": false,
   "type": "module",
   "files": [
+    "run_py.sh",
+    "deck_baseline.py",
     "run_py.sh",
     "gen_image.py",
     "media.py",

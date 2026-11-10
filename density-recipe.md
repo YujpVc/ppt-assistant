@@ -4,6 +4,13 @@
 
 核心结论一句话：**pptfast 的默认是「编辑风留白」，要「饱满充实」必须显式走密度优先配方——dense 节奏 + 满幅背景 + 富内容 + 多版式 + 禁止大白卡 + 不对称构图。**
 
+## 0. 先定风格与结论（2026-11 补充）
+- **style brief 四行**：用途/受众、气质、主色（1 个）、图像风格。主色写 `meta.accent`，需要时用 `meta.colors` 覆盖 bg/panel/text/muted；整套只用一个重点色。
+- **页计划先于 spec**：`页 / 结论句 / 证据 / 视觉类型 / 来源`。每个正文页标题必须是一句话结论，不是名词短语；一页一个思想，以上统下、顺序递进。
+- **配色按 HSL 想**：邻近色相做区分、同色相拉明度做层级；一页一个高饱和重点色，重点色出现 1–2 处。
+- **改稿先立合同**：`deck_baseline.py snapshot` 存基线 → 改工作副本 → `compare --protect … --expect …` 出台账；数字逐位核对，不为了好看改精度，不补材料里没有的评价词。
+- **工具边界**：一键 AI 工具常导出整页图片稿（文字不可编辑），不能交付；`quality_check.py` 会拦。
+
 ## 1. 引擎与主题
 - 引擎：pptfast（语义 IR → 原生可编辑 PPTX + `audit` 自动几何质检）。
 - 主题按用途选：
@@ -76,9 +83,11 @@
 封面/目录 → **多维度对比总表**（每个维度打分 + 综合第一标绿/色块突出）→ **逐对象深度档案**（每家/每项一页，末尾一段优劣势小结）→ 关键差异点表格+色块 → 结论页 **3 条可执行建议** → 最后一页「**一页速览**」总结卡片（可直接截图转发）。这种结构比「标题+要点」密度高得多，也更有用。
 
 ## 8. 质检（闭环）
+0. `quality_check.py <deck.pptx>` → 必须 PASS（含「整页图片、无可编辑文字」拦截）。
 1. `pptfast audit <deck项目>` → 必须 exit 0（溢出/越界/低对比/重叠/截断全查）。
 2. `python3 vision_check.py <render/pg-xx.png> "<问题>"`（DeepSeek `deepseek-v4-flash-vision-exp`）逐页评饱满度，修到 ≥8。
 3. 渲染：`soffice --headless --convert-to pdf` → `pdftoppm -png`。
+4. 改稿：`deck_baseline.py compare baseline.json 新稿.pptx --protect … --expect …` → exit 0 且台账无违规。
 4. **查「单字成行」**：读 `pptx_read` 输出，看有没有「E / 照」「6–7 / 折」「…三 / 点」这类数字/字母后跟单字量词被断行的——有就重排/缩短标题要点。
 5. **以 audit 为准**：consulting 主题的 banner-motif 黄色装饰条会被 vision 误判成「文字被遮挡」，但确定性 audit 是 0 问题——几何结论信 audit，vision 只做「留白/断行/单调」这类主观反馈。
 
