@@ -68,7 +68,8 @@
                      图片版式：image_hero / image_overlay / image_wall；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、
-                     image_stack（2–4 张旋转错位叠图）、quote_stage（网格底 + 金句）、kpi_showcase（大数字墙）。
+                     image_stack（2–4 张旋转错位叠图）、quote_stage（网格底 + 金句）、kpi_showcase（大数字墙）、
+                     cutout_statement（透明抠图压版面）、image_annotated（原生圆点+引线+标签）、image_arch（拱形裁切）。
                    - 通用增强：`**强调**` 会把词染成主色；`meta.transition` 可设 fade/push/morph；
                      `art: gradient|outline|image` 控制巨型数字的填充方式（image 用当前图片填字）。
                    - chart 使用 PowerPoint 原生可编辑图表；文本容量、素材存在性和布局字段在生成前校验。
@@ -118,6 +119,10 @@
                 - 叠图：image_stack 2–4 张，自动旋转错位 + 圆角阴影；单张可加 `treatment: mono|duotone|halftone` 做印刷质感。
                 - 大字墙：kpi_showcase 2–3 个大数字 + 分隔线 + `share` 细进度条；数字必须是真文本。
                 - 金句：quote_stage 只放一句话，配大引号、细线和网格底，用来换气。
+                - 透明抠图：`gen_image.py --transparent` 生成透明 PNG，配 `cutout_statement` 让主体压住版面/标题；主体要裁掉透明边、加烘焙阴影。
+                - 原生标注：`image_annotated` 用 `points:[{x,y,text}]`（0–1 相对坐标）画圆点、引线和标签；适合结构/接口/现场照片。
+                - 拱形裁切：`image_arch` 把人/物件裁进拱窗，比满幅更聚焦；也可给 `image_stack` 单项加 `mask: arch|circle`。
+                - 印刷与故障：`treatment: mono|duotone|halftone|glitch`；glitch 只做点缀，不用于证据图。
                 - 细节：`**关键词**` 在主色里高亮；`sections`/`section_no` 在章节页画进度点；`meta.transition: fade` 让整套切换更顺。
                 - 克制：一套 deck 最多 2–3 页「炫技」，相邻页不要连续堆特效；每个炫技页都要有真实信息，不能只有氛围。
 
@@ -126,6 +131,9 @@
                   - 配置：`~/.config/ppt-assistant/image.json`（api_base + api_key）。也可 `--config` 或 `$PPT_IMAGE_CONFIG`。密钥只留在配置里：不进 spec、不进成图、不进提交、不要在回复里打印。
                   - 尺寸只支持 1024x1024 / 1536x1024(landscape) / 1024x1536(portrait)。满幅 16:9 用 landscape 生成，再让引擎 cover 裁切。
                   - `--ref a.png --ref b.png` 走参考图编辑（最多 4 张）；`--dry-run` 先验证参数与端点。
+                  - `--transparent` 出透明底 PNG（gpt-image 的 background=transparent），专供 cutout_statement 的破格主体。
+                  - 每张生成图都要过视觉门：`bash <engine-root>/run_py.sh image_check.py <图> --intent "<主体/留白要求>" --min-score 7`（抠图加 `--transparent`）；exit 2（有文字/水印/主体不对）就换提示词重生成，不许硬用。
+                  - 出口被挡时：`ssh -D 1081 <host>` 起隧道，再用 `PPT_IMAGE_PROXY=socks5h://127.0.0.1:1081` 跑生图/验收。
                   - 单张通常 30–250 秒，慢是正常的：用后台 job 跑，产物直接写工作区 assets/，不要写 /tmp。
                 - 什么时候自己生图：封面、章节页、收尾页、抽象概念（感知—决策—执行、数据闭环、未来路线）和没有合适实拍的技术氛围图。用户给了素材、要求实拍或题材涉及真实设备/数据/人物时，不要用生成图替代证据。
                 - 一套 deck 3–6 张：封面/收尾各 1 张，章节页 1–2 张，其余页交给图表、卡片、表格。一页最多 1 张满幅图，不要每页铺图。
@@ -183,6 +191,7 @@
                 - Speaker script: every slide's notes carry a 2–4 sentence spoken script with the transition to the next page; export with `bash <engine-root>/run_py.sh speaker_notes.py export <deck.pptx> <script.md>` when the user wants a script.
                 - Data credibility: where numbers appear, add a source/scope note (or speaker note); never round a number for visual neatness; keep units and labels next to the value.
                 - One message per page: the title is the conclusion; if a page needs two titles, it is two pages.
+                - Generated assets must pass `image_check.py` (≥7, no text/watermark) before use; a pretty image that contradicts the brief is a defect.
                 - Showpiece discipline: at most 2–3 showcase pages (giant type, glass, diagonal, KPI wall); every one must carry a real message, never decoration alone.
                 - Color discipline: one accent across the deck; adjacent hues for categories, lightness for hierarchy; no second saturated accent.
                 - Images: 抓图/生图后逐张 vision 核验「图对不对题」；图片必须 crop-to-fill + 渐变/圆角/阴影之一；封面与章节页用满幅出血+渐变蒙版，读到的是「设计过」而不是「贴上去」。

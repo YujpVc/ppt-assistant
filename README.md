@@ -4,7 +4,7 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.3.0/ppt-assistant-1.3.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.3.0/ppt-assistant-1.3.0.tgz`。
+在 DSH 的插件管理页面添加 `https://github.com/YujpVc/ppt-assistant/releases/download/v1.4.0/ppt-assistant-1.4.0.tgz`，然后新建会话并选择 **PPT 助手**。命令行部署使用 `dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.4.0/ppt-assistant-1.4.0.tgz`。
 
 包名为 `@rx01334/ppt-assistant`，当前通过 GitHub Release 分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
@@ -40,6 +40,9 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 - `--ref a.png --ref b.png` 走参考图编辑，最多 4 张；`--dry-run` 先校验配置与端点。
 - 每次生成会写同名 `.json` 记录提示词、模型、耗时与哈希；密钥不在记录里。
 - 单张约 30 秒到 4 分钟，慢是上游排队、不是卡死。整套 deck 建议 3–6 张，同一组光线/色温词保证风格统一。
+- `--transparent` 生成透明底 PNG，用于 `cutout_statement` 的破格主体。
+- 生成后跑 `image_check.py <图> --intent "..." --min-score 7`，有文字/水印/主体不符就重生成；透明抠图加 `--transparent`（预览会压成白底，别误判）。
+- 出口被挡时可走 SSH 隧道：`ssh -D 1081 <host>`，再设 `PPT_IMAGE_PROXY=socks5h://127.0.0.1:1081`。
 
 ## 图片版式
 
@@ -64,9 +67,12 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | `image_stack` | 2–4 张旋转错位叠图 | `items[{image,treatment}]` |
 | `quote_stage` | 金句页：大引号 + 网格底 | `quote` `by` |
 | `kpi_showcase` | 大数字墙 + 进度条 | `stats[{value,label,note,share}]` |
+| `cutout_statement` | 透明抠图主体压住版面/标题 | `image` `side` `height` `flip` |
+| `image_annotated` | 原生圆点 + 引线 + 标签 | `points[{x,y,text}]` |
+| `image_arch` | 拱形裁切 + 侧栏文字 | `image` `items` |
 
 - `art` 可选 `gradient`（主色渐变）、`outline`（空心描边）、`image`（用图片填字，需配 `image`，自动加主色细描边）；字艺是装饰位图，正文仍是真文本。
-- `**关键词**` 在主色里高亮；`meta.transition: fade|push|morph` 加页面切换；`treatment: mono|duotone|halftone` 做印刷质感。
+- `**关键词**` 在主色里高亮；`meta.transition: fade|push|morph` 加页面切换；`treatment: mono|duotone|halftone|glitch` 做印刷/故障质感。
 - 一套 deck 最多 2–3 页炫技，相邻页不连续堆特效。
 
 ## 页计划与风格
@@ -93,7 +99,7 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 ## 打包
 
 ```bash
-npm pack          # 生成 @rx01334/ppt-assistant-1.3.0.tgz
+npm pack          # 生成 @rx01334/ppt-assistant-1.4.0.tgz
 ```
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。
