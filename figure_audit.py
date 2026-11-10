@@ -86,12 +86,12 @@ def audit(path: Path, max_ppi: float = 450.0, min_area: float = 0.12,
             text_px, word_count = ocr_text_height(image_rgb) if use_ocr else (0.0, 0)
             text_pt = text_px / ppi * 72.0 if text_px else 0.0
             if text_px:
-                dense = (area >= min_area and text_pt < 13.0 and word_count >= 5
-                         and white_pct >= 12.0)
+                dense = (min_area <= area < .85 and text_pt < 13.0
+                         and word_count >= 5 and white_pct >= 12.0)
             else:
                 # No OCR evidence: only flag very high pixel density, where a
                 # pasted paper figure is almost certainly over-detailed.
-                dense = ppi >= max_ppi and area >= min_area
+                dense = max_ppi <= ppi and min_area <= area < .85
             rows.append({
                 "page": page_no,
                 "name": shape.name,
