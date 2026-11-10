@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "comparison", "table", "chart",
-           "image_split", "image_grid", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -118,6 +118,13 @@ def validate(spec: dict, base: Path) -> None:
                     raise ValueError(f"slide {index}: heat_bars fire must be 大火/中火/小火/微火")
                 if not isinstance(item.get("minutes"), (int, float)) or float(item["minutes"]) <= 0:
                     raise ValueError(f"slide {index}: heat_bars minutes must be positive")
+        if layout == "image_triptych":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: image_triptych requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("image") for item in items):
+                raise ValueError(f"slide {index}: every triptych item requires an image")
+            assets = items
         if layout == "image_grid":
             assets = slide["items"]
         if layout == "section_number" and slide.get("image"):
@@ -1161,6 +1168,27 @@ class DeckBuilder:
                 self.text(slide, item["body"], body_x, y + .43, body_w, .26, 10, "muted")
             if page.get("source"):
                 self.text(slide, page["source"], .6, 6.70, 11.8, .20, 9, "muted")
+        elif layout == "image_triptych":
+            items = page["items"]
+            top = 2.06
+            scrim = {"direction": "bottom", "color": "1A0E08",
+                     "start": .42, "end": .98, "opacity": .88}
+            self.artwork(slide, items[0]["image"], .6, top, 7.55, 4.38,
+                         radius=0.0, scrim=scrim)
+            self.text(slide, f"01  {items[0]['title']}", .95, 5.58, 6.85, .34,
+                      18, "FFFFFF", True)
+            self.text(slide, items[0]["body"], .95, 5.96, 6.85, .24, 12, "FFF6EC")
+            self.box(slide, 8.24, top, .012, 4.38, "D8C6B4")
+            self.artwork(slide, items[1]["image"], 8.40, top, 4.30, 1.98,
+                         radius=0.0, scrim=scrim)
+            self.text(slide, f"02  {items[1]['title']}", 8.62, 3.14, 3.88, .28,
+                      13, "FFFFFF", True)
+            self.text(slide, items[1]["body"], 8.62, 3.44, 3.88, .20, 10.5, "FFFFFF")
+            self.artwork(slide, items[2]["image"], 8.40, 4.60, 4.30, 1.84,
+                         radius=0.0, scrim=scrim)
+            self.text(slide, f"03  {items[2]['title']}", 8.62, 5.58, 3.88, .28,
+                      13, "FFFFFF", True)
+            self.text(slide, items[2]["body"], 8.62, 5.88, 3.88, .20, 10.5, "FFFFFF")
         elif layout in {"chart", "chart_dashboard"}:
             top = 2.05 if page.get("subtitle") else 1.65
             self.chart_page(slide, page, top=top, height=6.6 - top)

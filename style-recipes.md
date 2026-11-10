@@ -93,7 +93,7 @@
          "font": "Noto Sans CJK SC"}
 ```
 
-版式池：`cutout_statement` `image_wall` `section_number` `quote_stage` `image_statement`
+版式池：`cutout_statement` `image_wall` `image_triptych` `section_number` `quote_stage` `image_statement`
 骨架：海报封面 → 图墙 → 日程（步骤）→ 现场标注 → 金句 → 收尾
 避免：低饱和莫兰迪、居中对齐的安全牌、把作品缩进小卡片。
 
@@ -115,7 +115,7 @@
          "font": "Noto Sans CJK SC", "titleFont": "Noto Serif CJK SC"}
 ```
 
-版式池：`image_hero` `image_arch` `quote_stage` `image_statement` `image_split` `closing`
+版式池：`image_hero` `image_arch` `image_triptych` `quote_stage` `image_statement` `image_split` `closing`
 骨架：大图封面 → 长文 → 单图 → 引文 → 索引 → 收尾
 避免：满屏卡片、彩色标签、把每页都填满。
 
