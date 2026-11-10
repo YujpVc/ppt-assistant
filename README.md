@@ -67,7 +67,9 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 
 | 版式 | 用途 | 关键字段 |
 | --- | --- | --- |
-| `architecture` | 3 层总体路线：三个框 + 箭头 + 底部共同验证条 | `items[3]{title,body}` `bottom_title` `bottom` |
+| `architecture` | 3 层总体路线：深色主张带 + 大编号 + 细网格 + 回写环 + 验证跑道 | `items[3]{title,body}` `band` `loop` `steps` `bottom_title` |
+| `sequence` | 之字形主轴：3 步上下交替，适合机制/流程 | `items[3]{title,body,foot}` `bottom` |
+| `pillars` | 3 根深色柱头 + 纸面正文，适合并列机制 | `items[3]{title,body,foot}` `bottom` |
 
 学术/基金 deck 的总体路线优先用它重画，不把论文总图整张贴进来。
 
