@@ -150,7 +150,7 @@
 - **密度**：低到中。5 页一份；正文 18–22pt，图注 14pt，图内标签 ≥14pt；宁少一页，不塞一张论文总图
 - **配色逻辑**：象牙纸底 60% + 墨色 30% + 单一深青强调 10%；不要 corporate 蓝（如 #2F5597）；红只标风险/待确认
 - **字体逻辑**：标题思源宋体 30–36，正文思源黑体 18–22；不要用 12pt 正文撑信息量
-- **图片行为**：至少 3 页有图（实拍或生成概念图）；封面用实验室/机器人场景，机制/执行页用 `image_panel`（`dense: true`：5 条要点 + 3 指标）或 `image_panel_strip`；论文总图仍不整张贴；生成图必须标「研究场景示意，非实验原始记录」
+- **图片行为**：至少 3 页有图（实拍或生成概念图）；封面用实验室/机器人场景，机制/执行页用 `image_band`（满幅图 + 底部渐变 + 三栏证据）或 `image_panel_strip`（`dense: true`：5 条要点 + 3 指标）；论文总图仍不整张贴；生成图必须标「研究场景示意，非实验原始记录」
 - **空间节奏**：封面（image_hero）→ 总体路线（architecture）→ 机制 1（image_panel）→ 机制 2（image_panel）→ 创新与验证（kpi/cards）；不要目录、章节编号和论文小节号
 - **图法**：先定一条主轴，再按同色系实心→浅色→线框分层次；不要每个模块都填色，不要圆角卡片墙。
 - **文字与图的配比**：学术页不是图墙；每页用一张图承担证据/场景，文字用实心面板承载，保证 14pt 以上可读。
@@ -161,7 +161,7 @@
          "font": "Noto Sans CJK SC", "titleFont": "Noto Serif CJK SC"}
 ```
 
-版式池：`image_hero` `architecture` `image_panel` `kpi_showcase` `sequence` `pillars` `table` `closing`
+版式池：`image_hero` `architecture` `image_band` `image_panel_strip` `kpi_showcase` `sequence` `pillars` `table` `closing`
 骨架：封面 → 总体路线（三段共用一套状态）→ 规程解析/规划 → 执行证据/记忆恢复 → 创新点与验证指标
 避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据。
 - **表格纪律**：`table` 只给真正的二维数值矩阵；验收层级/挑战/机制用 `pillars`/`sequence`/`image_panel`。
