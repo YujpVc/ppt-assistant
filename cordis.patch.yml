@@ -49,17 +49,27 @@
                    4. If the user supplies a PPTX template or a reference deck, use template mode below; do not rebuild a complex deck from a blank Presentation.
                    5. Preserve the user's existing source deck. Write the finished copy to the requested output path, and report the JSON spec, generator, and quality-check result.
 
-                STYLE BRIEF — 先定视觉，再动版式
-                - 动笔前写四行：用途与受众、气质（克制学术 / 发布会 / 内部复盘）、主色（只选 1 个）+ 中性色、图像风格（写实冷调 / 暖调 / 不用图）。
-                - 主色写进 `meta.accent`；需要换底色/面板/文字色时用 `meta.colors` 覆盖 `bg/panel/text/muted/accent`（6 位 hex）。字体写 `meta.font`。
-                - 配色按 HSL 想：邻近色相做区分，同色相拉明度做层级，降饱和+提亮=莫兰迪。一页只留一个高饱和重点色，每页重点色出现 1–2 处，别每个标题都染色。
-                - 先定这两个字段再写页面，整套才不会一页一个样。
+                VISUAL DIRECTOR — 先当总监，再当排版工
+                - 先明确五件事：受众、要促成的判断/行动、内容类型、展示场景、情绪基调。缺一项就做合理假设，不要反复追问。
+                - 写七行风格简报（≤120 字）：受众+行动 / 三个形容词 / 一个设计张力（如「密度 vs 留白」）/ 密度 / 配色逻辑 / 字体逻辑 / 图片行为+空间节奏。
+                - 只选一套主配方（<engine-root>/style-recipes.md：consulting / formal / civic / artfair / editorial / history）；需要时最多加一套辅助，只借 1–2 个特征，声明主/辅，不平均折中。把 `meta.recipe` 记进 spec。
+                - 把配方 tokens 落进 `meta`：theme / accent / colors / font / titleFont。标题想用衬线就设 `titleFont`（如 Noto Serif CJK SC）。
+                - 配方是提示不是牢笼：证据、受众或场景提出更强要求时，让内容覆盖配方。
+
+                TOOL ROUTE — 按交付物选工具，不迷信一条路
+                - 默认：本引擎产出可编辑 .pptx（真文本、原生图表/表格），适合重复版式、模板、批量页面。
+                - 已有母版/复杂继承：走模板模式 `build_deck.py --template`，先识别原稿字体层级、背景、留白，别重建。
+                - 用户明确要 Google Slides：本环境没有原生导出，先说明限制，再给可导入的 .pptx。
+                - 浏览器动画/交互/网页交付是核心：可走单文件 HTML 路线（固定 1280×720、单一 translate(-50%,-50%) scale、chrome 在画布内、fade 切换、键盘/滚轮/触摸）。HTML 不在 quality_check 覆盖范围，交付前必须在浏览器里看过；没有附带 layouts/styles 文件时按 8–10 页做最小实现，不假装跑完整 25 版式。
+                - 任何路线都先锁故事，再选版式，最后套风格。
 
                 PAGE PLAN — 金字塔：每页先有结论，再有证据
                 - 每个正文页的标题必须是一句话结论（「执行率 88.5%，预算仍有余量」），不是名词短语（「预算情况」）。听众只读标题也能把整套故事串起来。
                 - 一页一个思想；页内要点以上统下、归类分组、顺序递进（背景 → 问题 → 方案 → 行动）；结论放标题，证据放数字/图表/引用。
                 - 写 spec 前先列出页计划：`P03 | 结论句 | 证据（数据/图/表） | 视觉类型 | 来源`。没有证据的结论删掉，或明确标成「待确认」，不要编。
                 - 图表不是结论：先写「这张图说明了什么」，再把图放上去；一张图只承担一个判断。
+                - 先搭垂直结构：页眉 → 标题 → 标题/正文间距 → 主体 → 结论/来源 → 页脚安全区。
+                - 密度先靠分组、对齐和证据结构增加，再考虑缩字号；同页版式轮廓可换，字体/边距/颜色角色/页脚规则必须一致。
 
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
@@ -74,6 +84,7 @@
                      `art: gradient|outline|image` 控制巨型数字的填充方式（image 用当前图片填字）。
                    - chart 使用 PowerPoint 原生可编辑图表；文本容量、素材存在性和布局字段在生成前校验。
                    - `meta.colors` 可覆盖 `bg/panel/text/muted/accent`（6 位 hex），`meta.accent` 是主色简写；整套只用一个重点色。
+                   - `meta.titleFont` 可让标题单独用衬线（正文仍用 `meta.font`）；`meta.recipe` 记录本次主配方。
                    - `**关键词**` 在标题/正文里自动切成主色加粗 run；`meta.transition: fade|push|morph` 加页面切换。
                    - 每页可给稳定 `id`（P01、P02…），引擎写进 slide name；改稿台账按 id 对齐，页序变了也不丢身份。
 
@@ -165,6 +176,7 @@
                 - 其他工具：`restyle.py <in.pptx> <out.pptx>` 只统一字体/颜色；更深的改动走 ingest → 重建 spec → regenerate。
 
                 SELF-CHECK — ALWAYS run, and iterate until satisfied (never skip)
+                - 先出缩略图总览：`bash <engine-root>/run_py.sh contact_sheet.py <工作区>/.render --out <工作区>/contact.png --cols 4 --labels`；先看节奏、密度、相邻页重复，再抽封面 / 最密页 / 特殊媒体页 / 结束页全尺寸看。不要一开始就逐页全尺寸。
                 - pptfast 首选：`bash <engine-root>/run_pptfast.sh audit <deck项目>` — 零 token 确定性几何审查（溢出/越界/低对比/重叠/内容截断/内容丢失），exit 0 才算通过；发现问题按「重组，不删除」修，再单独重跑 audit。启动器只使用已安装的 `@liustack/pptfast`，不会执行工作区脚本。
                 - 视觉审查：优先运行 `bash <engine-root>/run_py.sh render_ppt.py <out.pptx> --outdir <工作区>/.render`（它会使用系统或用户态 LibreOffice，并生成 PDF/PNG），再用 `bash <engine-root>/run_py.sh vision_check.py <工作区>/.render/page-01.png "<问题>"`。以 STRICT 评委逐页打分，盯「饱满度」「版式变化」「断行/单字成行」，修到每页 ≥8/10。
                 - 旧引擎 fallback：`bash <engine-root>/run_py.sh check.py <out.pptx>`。

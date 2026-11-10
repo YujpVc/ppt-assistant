@@ -63,6 +63,9 @@ def validate(spec: dict, base: Path) -> None:
         text = str(value).strip().lstrip("#")
         if len(text) != 6 or any(char not in "0123456789ABCDEFabcdef" for char in text):
             raise ValueError(f"meta.colors.{key} must be a 6-digit hex color")
+    title_font = spec["meta"].get("titleFont")
+    if title_font is not None and (not isinstance(title_font, str) or not title_font.strip()):
+        raise ValueError("meta.titleFont must be a non-empty string")
     effect = spec["meta"].get("transition")
     if effect not in {None, "fade", "push", "morph"}:
         raise ValueError("meta.transition must be fade, push or morph")
@@ -229,6 +232,7 @@ class DeckBuilder:
         if self.meta.get("accent"):
             self.colors["accent"] = str(self.meta["accent"]).strip().lstrip("#").upper()
         self.font = self.meta.get("font", "Noto Sans CJK SC")
+        self.head_font = self.meta.get("titleFont") or self.font
         self.prs = Presentation()
         self.prs.slide_width, self.prs.slide_height = Inches(13.333333), Inches(7.5)
 
@@ -249,7 +253,7 @@ class DeckBuilder:
         return shape
 
     def text(self, slide, value, x, y, w, h, size=21, color="text", bold=False,
-             anchor=None, align=None, tracking=None):
+             anchor=None, align=None, tracking=None, font=None):
         """Fit text conservatively; reject dense content instead of shrinking it."""
         value = str(value)
         if not value.strip():
@@ -266,6 +270,7 @@ class DeckBuilder:
             frame.vertical_anchor = anchor
         frame.margin_left = frame.margin_right = frame.margin_top = frame.margin_bottom = 0
         base_color = self.colors.get(color, color)
+        family = font or self.font
         for index, line in enumerate(value.split("\n")):
             paragraph = frame.paragraphs[0] if index == 0 else frame.add_paragraph()
             paragraph.space_after = Pt(8)
@@ -278,13 +283,13 @@ class DeckBuilder:
                 emphasis = part_index % 2 == 1
                 run = paragraph.add_run()
                 run.text = part
-                run.font.name, run.font.size = self.font, Pt(size)
+                run.font.name, run.font.size = family, Pt(size)
                 run.font.bold = bold or emphasis
                 if tracking is not None:
                     run._r.get_or_add_rPr().set("spc", str(int(tracking)))
                 run.font.color.rgb = RGBColor.from_string(
                     self.colors["accent"] if emphasis else base_color)
-                east_asian = run._r.get_or_add_rPr().makeelement(qn("a:ea"), {"typeface": self.font})
+                east_asian = run._r.get_or_add_rPr().makeelement(qn("a:ea"), {"typeface": family})
                 run._r.get_or_add_rPr().append(east_asian)
         return shape
 
@@ -420,7 +425,7 @@ class DeckBuilder:
             self.box(slide, x, y - 0.16, 0.62, 0.045, accent)
         title = self.text(slide, page["title"], x, y, w, 2.15,
                           page.get("title_size", 42 if side != "bottom" else 38),
-                          title_color, True)
+                          title_color, True, font=self.head_font)
         if title is not None:
             title.name = "title"
         if page.get("body"):
@@ -453,7 +458,8 @@ class DeckBuilder:
             self.text(slide, str(page["kicker"]).upper(), x, top, w, 0.3, 11, accent, True)
             top += 0.42
         title = self.text(slide, page["title"], x, top, w, 1.35,
-                          page.get("title_size", 32), title_color, True)
+                          page.get("title_size", 32), title_color, True,
+                          font=self.head_font)
         if title is not None:
             title.name = "title"
         cursor = top + 1.62
@@ -588,7 +594,7 @@ class DeckBuilder:
         kicker = str(page.get("kicker", f"SECTION {number}")).upper()
         self.text(slide, kicker, x, 1.42, w, 0.3, 12, accent, True, tracking=180)
         self.text(slide, page["title"], x, 1.86, w, 2.0,
-                  page.get("title_size", 40), text_color, True)
+                  page.get("title_size", 40), text_color, True, font=self.head_font)
         self.box(slide, x, 4.06, 0.72, 0.05, accent)
         cursor = 4.3
         if page.get("body"):
@@ -643,7 +649,7 @@ class DeckBuilder:
             self.box(slide, x, y - 0.16, 0.62, 0.045, accent)
         self.text(slide, page["title"], x, y, w, 2.0,
                   page.get("title_size", 40 if side != "bottom" else 36),
-                  title_color, True)
+                  title_color, True, font=self.head_font)
         if page.get("body"):
             self.text(slide, page["body"], x, y + 2.2, w, 1.3, 18, muted)
         meta = page.get("meta") or self.meta.get("author", "")
@@ -729,7 +735,7 @@ class DeckBuilder:
             self.text(slide, str(page["kicker"]).upper(), tx, cursor, tw, 0.3, 11, accent, True)
             cursor += 0.38
         self.text(slide, page["title"], tx, cursor, tw, 1.35,
-                  page.get("title_size", 29), title_color, True)
+                  page.get("title_size", 29), title_color, True, font=self.head_font)
         cursor += 1.42
         if page.get("body"):
             self.text(slide, page["body"], tx, cursor, tw, 1.15, 16, body_color)
@@ -764,7 +770,7 @@ class DeckBuilder:
         muted = "AFC3DA" if dark else self.colors["muted"]
         self.text(slide, page["quote"], 1.55, 2.05, 10.2, 2.7,
                   page.get("quote_size", 34), text_color, True,
-                  align=PP_ALIGN.CENTER)
+                  align=PP_ALIGN.CENTER, font=self.head_font)
         self.box(slide, 5.95, 5.12, 1.45, 0.04, accent)
         if page.get("by"):
             self.text(slide, page["by"], 1.55, 5.4, 10.2, 0.4, 15, muted,
@@ -786,7 +792,7 @@ class DeckBuilder:
         self.text(slide, str(page.get("kicker", "")).upper(), 0.95, 1.0, 6.0, 0.3,
                   12, accent, True, tracking=160)
         self.text(slide, page["title"], 0.95, 1.4, 10.6, 1.2,
-                  page.get("title_size", 32), text_color, True)
+                  page.get("title_size", 32), text_color, True, font=self.head_font)
         stats = page["stats"]
         top = 3.0
         span = 12.0 / len(stats)
@@ -872,7 +878,7 @@ class DeckBuilder:
                       True, tracking=160)
             self.box(slide, tx, 1.82, 0.62, 0.045, accent)
         self.text(slide, page["title"], tx, 2.02, tw, 2.4,
-                  page.get("title_size", 46), title_color, True)
+                  page.get("title_size", 46), title_color, True, font=self.head_font)
         if page.get("body"):
             self.text(slide, page["body"], tx, 4.62, tw - 0.4, 1.3, 18, muted)
         stats = page.get("stats") or []
@@ -890,7 +896,8 @@ class DeckBuilder:
         self.add_full(slide, background)
         self.text(slide, str(page.get("kicker", "")).upper(), 0.95, 0.85, 6.0, 0.3,
                   12, "7FE3F0", True, tracking=160)
-        self.text(slide, page["title"], 0.95, 1.2, 9.0, 0.9, 30, "FFFFFF", True)
+        self.text(slide, page["title"], 0.95, 1.2, 9.0, 0.9, 30, "FFFFFF", True,
+                  font=self.head_font)
         accent = self.colors["accent"]
         for index, point in enumerate(page["points"], 1):
             px, py = float(point["x"]) * 13.333, float(point["y"]) * 7.5
@@ -940,7 +947,7 @@ class DeckBuilder:
             self.text(slide, str(page["kicker"]).upper(), x, 1.55, w, 0.3, 12, accent, True,
                       tracking=160)
         self.text(slide, page["title"], x, 1.95, w, 1.8, page.get("title_size", 36),
-                  text_color, True)
+                  text_color, True, font=self.head_font)
         self.box(slide, x, 3.92, 0.7, 0.05, accent)
         if page.get("body"):
             self.text(slide, page["body"], x, 4.18, w, 1.4, 17, muted)
@@ -952,7 +959,7 @@ class DeckBuilder:
         slide.background.fill.solid()
         slide.background.fill.fore_color.rgb = RGBColor.from_string(self.colors["bg"])
         title = self.text(slide, page.get("title", self.meta["title"]),
-                          .6, .38, 12.1, .95, 30, bold=True)
+                          .6, .38, 12.1, .95, 30, bold=True, font=self.head_font)
         if title is not None:
             title.name = "title"
         if page.get("subtitle"):
@@ -1048,14 +1055,19 @@ class DeckBuilder:
             columns = len(items) if len(items) <= 3 else 2
             rows = math.ceil(len(items) / columns)
             width = (12.1 - .25 * (columns - 1)) / columns
-            slot = (4.55 - .25 * (rows - 1)) / rows
+            takeaway = page.get("takeaway")
+            area = 4.55 - (0.55 if takeaway else 0)
+            slot = (area - .25 * (rows - 1)) / rows
             # Fit the card to its copy instead of stretching a short card into
             # an empty 4.5-inch shell; the group stays vertically centred.
             height = min(slot, max(self._card_need(item, width) for item in items))
-            top = 2.05 + (4.55 - (height * rows + .25 * (rows - 1))) / 2
+            top = 2.05 + (area - (height * rows + .25 * (rows - 1))) / 2
             for index, item in enumerate(items):
                 self.card(slide, item, .6 + (index % columns) * (width + .25),
                           top + (index // columns) * (height + .25), width, height)
+            if takeaway:
+                self.box(slide, .6, 6.24, .06, .5, "accent")
+                self.text(slide, takeaway, .88, 6.22, 11.7, 0.55, 15, "text", True)
         elif layout == "process":
             items = page["items"]
             width = (12.1 - .4 * (len(items) - 1)) / len(items)
