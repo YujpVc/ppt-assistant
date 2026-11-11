@@ -4,15 +4,25 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 ## 安装
 
-两个通道，内容同源；内网优先用私库，公网用 GitHub。
+**推荐：npm（一条命令，版本和依赖都由 registry 管）**
+
+```bash
+dsh plugin --profile web add @yujp_vc/ppt-assistant@2.0.9
+# 或跟最新版
+dsh plugin --profile web add @yujp_vc/ppt-assistant@latest
+```
+
+npm 页面：https://www.npmjs.com/package/@yujp_vc/ppt-assistant
+
+npm 装不上时再用 tgz 包，内容同源：
 
 - **公网（GitHub）**
 
   ```bash
-  dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v1.5.0/ppt-assistant-1.5.0.tgz
+  dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v2.0.9/ppt-assistant-2.0.9.tgz
   ```
 
-装完新建会话并选择 **PPT 助手**。包名为 `@yujp_vc/ppt-assistant`，通过 GitHub 与内网 GitHub 双通道分发，尚未发布到 npm。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
+装完新建会话并选择 **PPT 助手**。包名为 `@yujp_vc/ppt-assistant`；npm 是主通道，GitHub 是备用通道。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
 
 此包保留原有 PPT 助手提示词和工具组合，同时附带 Python 生成引擎和通用主题资源；不复制用户配置、API 密钥、机构模板、机构 Logo、历史会话或生成的文件。提示词沿用原来的引擎发现规则：`deepseek-harness/ppt-assistant`、`~/ppt-assistant` 或安装后的 `node_modules/@yujp_vc/ppt-assistant`。
 
@@ -158,7 +168,7 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 ## 打包
 
 ```bash
-npm pack          # 生成 @yujp_vc/ppt-assistant-1.5.0.tgz
+npm pack          # 生成 @yujp_vc/ppt-assistant-2.0.9.tgz
 ```
 
 插件不包含模型服务或账号，遵循会话已有权限。安装需要 DSH `0.2.1-rc.3` 或兼容的 `0.2.x`，已在 Linux Desktop 0.2.1-rc.3 的插件管理入口验证安装；激活验证结果以发行说明为准。
