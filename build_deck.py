@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "glass_canvas", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
+LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "glass_canvas", "flow_chart", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
            "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -311,6 +311,14 @@ def validate(spec: dict, base: Path) -> None:
                 raise ValueError(f"slide {index}: glass_canvas requires exactly 3 items")
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: glass_canvas requires an image")
+            assets = [slide]
+        if layout == "flow_chart":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: flow_chart requires exactly 3 mainline items")
+            steps = slide.get("steps")
+            if not isinstance(steps, list) or len(steps) != 4:
+                raise ValueError(f"slide {index}: flow_chart requires exactly 4 validation steps")
             assets = [slide]
         if layout == "light_cover":
             if not slide.get("image"):
@@ -1954,6 +1962,40 @@ class DeckBuilder:
                 self.text(slide, page["quote"], 9.55, 5.02, 2.95, .72, 8.8, muted)
             if page.get("source"):
                 self.text(slide, page["source"], 9.55, 5.95, 2.95, .45, 7.0, muted)
+        elif layout == "flow_chart":
+            items = page["items"]
+            self.text(slide, page.get("flow_title", "三条主线 / 同一份任务状态"), .62, 1.62, 8.2, .26, 9, "accent", True)
+            for index, item in enumerate(items):
+                x = .62 + index * 2.72
+                self.box(slide, x, 1.98, 2.38, 1.62, "FFFFFF")
+                self.box(slide, x, 1.98, 2.38, .045, "accent")
+                self.text(slide, f"{index + 1:02d}", x + .14, 2.08, .38, .22, 8, "accent", True)
+                self.text(slide, item["title"], x + .52, 2.07, 1.75, .26, 11.5, "text", True)
+                self.text(slide, item["body"], x + .14, 2.42, 2.10, .64, 8.3, "muted")
+                if index < 2:
+                    self.text(slide, "→", x + 2.40, 2.58, .30, .26, 14, "accent", True,
+                              align=PP_ALIGN.CENTER)
+            self.box(slide, .62, 3.78, 7.30, .010, "D8C6B4")
+            self.text(slide, "回写：执行证据只改未执行部分", 5.10, 3.82, 3.3, .18, 7.5, "muted")
+            self.box(slide, 5.50, 3.70, .010, .28, "accent")
+            self.box(slide, 2.00, 3.70, 3.50, .010, "accent")
+            self.text(slide, "↺", 1.92, 3.62, .30, .26, 13, "accent", True)
+            self.text(slide, page.get("steps_title", "四级验证"), .62, 4.45, 1.2, .24, 9, "accent", True)
+            for index, step in enumerate(page.get("steps", [])[:4]):
+                x = .62 + index * 2.08
+                self.box(slide, x, 4.74, 1.86, .96, "FFFFFF")
+                self.box(slide, x, 4.74, .035, .96, "accent")
+                self.text(slide, f"0{index + 1}", x + .12, 4.82, .32, .18, 7.5, "accent", True)
+                self.text(slide, step, x + .12, 5.04, 1.60, .42, 10, "text", True)
+                if index < 3:
+                    self.text(slide, "→", x + 1.88, 5.05, .18, .18, 9, "accent", True)
+            if page.get("image"):
+                self.box(slide, 9.22, 1.95, 3.50, 4.12, "FFFFFF")
+                self.artwork(slide, page["image"], 9.34, 2.07, 3.26, 3.88, radius=0.02)
+                if page.get("image_caption"):
+                    self.text(slide, page["image_caption"], 9.30, 5.98, 3.35, .18, 7.5, "muted")
+            if page.get("source"):
+                self.text(slide, page["source"], .65, 6.70, 11.9, .18, 8.0, "muted")
         elif layout == "light_cover":
             self.box(slide, 0, 0, 13.333, 7.5, "bg")
             self.artwork(slide, page["image"], 7.15, .55, 5.55, 6.55, radius=0.0,
@@ -2243,7 +2285,7 @@ class DeckBuilder:
                                                  "image_annotated", "ingredient_board",
                                                  "ingredient_split", "image_panel",
                                                  "image_band", "image_mosaic", "briefing", "matrix",
-                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars", "glass_canvas"}:
+                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars", "glass_canvas", "flow_chart"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
