@@ -1546,7 +1546,19 @@ class DeckBuilder:
                               span - .2, .32, 9, "muted")
                     if index:
                         self.box(slide, sx - .16, stat_y, .008, .72, "D8C6B4")
-            if page.get("strip"):
+            if page.get("flow"):
+                nodes = page["flow"][:4]
+                n = len(nodes)
+                gap = .10
+                node_w = (pw - gap * (n - 1)) / n
+                for index, node in enumerate(nodes):
+                    nx = px + index * (node_w + gap)
+                    self.box(slide, nx, 6.28, node_w, .42, "FFFFFF")
+                    self.box(slide, nx, 6.28, .04, .42, "accent")
+                    self.text(slide, node, nx + .10, 6.37, node_w - .14, .20, 7.5, "text")
+                    if index < n - 1:
+                        self.text(slide, "→", nx + node_w + .01, 6.38, .12, .16, 7, "accent", True)
+            elif page.get("strip"):
                 self.box(slide, px, 6.35, pw, .010, "D8C6B4")
                 labels = page["strip"][:3]
                 span = pw / len(labels)
@@ -1842,7 +1854,19 @@ class DeckBuilder:
                     if item.get("label"):
                         self.text(slide, str(item["label"]), x + 1.42, y + 1.10,
                                   1.35, .18, 7.2, "muted")
-            if page.get("chips"):
+            if page.get("flow"):
+                nodes = page["flow"][:4]
+                n = len(nodes)
+                gap = .18
+                node_w = (11.9 - gap * (n - 1)) / n
+                for index, node in enumerate(nodes):
+                    nx = .60 + index * (node_w + gap)
+                    self.box(slide, nx, 5.96, node_w, .38, "FFFFFF")
+                    self.box(slide, nx, 5.96, .04, .38, "accent")
+                    self.text(slide, node, nx + .10, 6.04, node_w - .16, .20, 8.3, "text")
+                    if index < n - 1:
+                        self.text(slide, "→", nx + node_w + .01, 6.05, .18, .18, 8, "accent", True)
+            elif page.get("chips"):
                 for index, chip in enumerate(page["chips"][:3]):
                     cx = .60 + index * 4.05
                     self.box(slide, cx, 5.94, 3.82, .42, "FFFFFF")
