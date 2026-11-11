@@ -161,7 +161,7 @@
          "font": "Noto Sans CJK SC", "titleFont": "Noto Serif CJK SC"}
 ```
 
-版式池：`image_hero` `architecture` `image_band` `image_mosaic` `image_panel_strip` `kpi_showcase` `sequence` `pillars` `academic_table` `closing`
+版式池：`image_hero` `briefing` `image_band` `image_mosaic` `matrix` `architecture` `kpi_showcase` `sequence` `pillars` `academic_table` `closing`
 骨架：封面 → 总体路线（三段共用一套状态）→ 规程解析/规划 → 执行证据/记忆恢复 → 创新点与验证指标
 避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据、三张等宽图片当路线对比。
 - **学术表格**：用三线表（上下 1.5pt、表头下 0.75pt、无竖线）；首列左对齐、其余居中，最后一列“下一步”浅底强调；表题、来源、单位齐全。不要深色表头 + 行号色块的商业表。
