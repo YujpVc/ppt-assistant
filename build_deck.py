@@ -1281,13 +1281,19 @@ class DeckBuilder:
                     shape.line.fill.background()
         elif layout == "architecture":
             items = page["items"]
+            light = bool(page.get("light"))
+            band_fill = "FFFFFF" if light else "1C1B19"
+            band_text = "text" if light else "FFFFFF"
+            meta_color = "accent" if light else "B98A63"
             # Ink band: the page's one-sentence argument, not another title.
-            self.box(slide, 0, 1.32, 13.333, .78, "1C1B19")
+            self.box(slide, 0, 1.32, 13.333, .78, band_fill)
+            if light:
+                self.box(slide, 0, 1.32, .10, .78, "accent")
             self.text(slide, page.get("band", "三段不是三个模块，是一条状态链"),
-                      .65, 1.47, 9.7, .36, 18, "FFFFFF", True,
+                      .65, 1.47, 9.7, .36, 18, band_text, True,
                       font=self.head_font)
             self.text(slide, "01—03 / 同一任务状态", 9.55, 1.55, 3.15, .22,
-                      8, "B98A63", True, align=PP_ALIGN.RIGHT)
+                      8, meta_color, True, align=PP_ALIGN.RIGHT)
             # Technical canvas: a single field, not three cards.
             self.box(slide, .45, 2.05, 12.43, 3.35, "F1E7DB")
             for x in (4.45, 8.55):
@@ -1329,19 +1335,22 @@ class DeckBuilder:
             tri.line.fill.background()
             self.text(slide, page.get("loop", "执行证据回写计划"),
                       4.95, 5.06, 4.2, .22, 8, "muted")
-            # Validation runway: four grades, one dark strip.
-            self.box(slide, .60, 5.58, 12.10, 1.06, "1C1B19")
+            # Validation runway: four grades.
+            self.box(slide, .60, 5.58, 12.10, 1.06, "FFFFFF" if light else "1C1B19")
             self.text(slide, page.get("bottom_title", "验证递进"),
-                      .85, 5.72, 1.55, .26, 11, "B98A63", True)
+                      .85, 5.72, 1.55, .26, 11,
+                      "accent" if light else "B98A63", True)
             steps = page.get("steps", ["单项操作", "跨设备流程",
                                        "完整培养周期", "人工对照"])
             for index, step in enumerate(steps[:4]):
                 x = 2.55 + index * 2.45
                 self.text(slide, f"0{index + 1}", x, 5.70, .38, .18,
-                          8, "B98A63", True)
-                self.text(slide, step, x, 5.90, 2.20, .24, 11, "FFFFFF")
+                          8, "accent" if light else "B98A63", True)
+                self.text(slide, step, x, 5.90, 2.20, .24, 11,
+                          "text" if light else "FFFFFF")
                 if index:
-                    self.box(slide, x - .16, 5.70, .006, .62, "5A4A40")
+                    self.box(slide, x - .16, 5.70, .006, .62,
+                             "D8C6B4" if light else "5A4A40")
         elif layout == "sequence":
             items = page["items"]
             rail_y = 4.08
@@ -1883,7 +1892,7 @@ class DeckBuilder:
             self.text(slide, page["title"], tx, 1.02, tw, .90,
                       page.get("title_size", 25), ink, True, font=self.head_font)
             if page.get("body"):
-                self.text(slide, page["body"], tx, 1.98, tw, .62, 11.5, muted)
+                self.text(slide, page["body"], tx, page.get("body_y", 1.98), tw, .62, 11.5, muted)
             for index, item in enumerate(items):
                 iy = 2.82 + index * 1.05
                 self.box(slide, tx, iy, tw, .009, "D8C6B4")
