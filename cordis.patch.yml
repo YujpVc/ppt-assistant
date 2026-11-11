@@ -72,7 +72,9 @@
                 - 方法闭环 / 流程（3–4 步）→ `sequence`：一条主轴、上下交替；不要 `process` 四张等权圆角卡。
                 - 机制 / 数据 / 证据页 → `image_panel`：一侧整幅图，另一侧实心纸面放标题、正文、要点、指标；不要 `image_overlay` 把字压在图上。
                 - 验收 / 层级 / 挑战（3–4 条）→ `pillars`：深色柱头 + 纸面正文；不要用 `table` 当排版容器。
-                - `table` 只给真正的二维数值矩阵（行 × 列都有独立语义）；能用图、流程、柱、指标讲清的，不用表格。
+                - 三张路线/方案对比不要等宽三列；用 `image_mosaic`：一张主图 + 两张辅图，编号和图注压在图上。
+                - 三层/机制堆叠（表征→动力学→解码）用 `architecture` 或 `pillars`，不要 `process` 三张等权卡。
+                - `table` 只给真正的二维数值矩阵；用 table 时必须行号列 + 深色表头 + 去竖线 + 单元格上下左右居中/首列左对齐 + 隔行底色。能用图、流程、柱、指标讲清的，不用表格。
 
                 PAGE PLAN — 金字塔：每页先有结论，再有证据
                 - 每个正文页的标题必须是一句话结论（「执行率 88.5%，预算仍有余量」），不是名词短语（「预算情况」）。听众只读标题也能把整套故事串起来。
@@ -119,7 +121,7 @@
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_band / image_panel / image_panel_strip / comparison / image_split / image_grid / table / chart / closing，
+                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
