@@ -78,6 +78,7 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | `evidence_grid` | 图 + 4 个编号 + 2×2 证据卡 + 3 chips | `image` `items[4]{title,body,value,label,x,y}` `chips` |
 | `diagonal_compare` | 双图斜切 + 三路线四准则矩阵 | `images[2]` `items[3]{title,rows[4]}` |
 | `compare_grid` | 3 路线 × 4 准则矩阵，小图在顶、文字在底 | `items[3]{image,title,rows[4]}` `bottom` |
+| `glass_canvas` | 满幅浅图 + 两片磨砂画布 + 三条机制 + 数字/流程/chips | `image` `items[3]` `stats[3]` `chips` `flow` |
 | `briefing` | 高密度简报：标题带 + 3–4 模块 + 数据栏 + chips + 底部结论 | `title` `items[3–4]` `stats[3]` `chips` `quote` `bottom` |
 | `matrix` | 2×2 四象限：每格编号 + 标题 + 状态 + 代表工作 + 下一步 | `items[4]{title,body,note,tag,value}` `bottom` |
 | `sequence` | 之字形主轴：3–4 步上下交替，适合机制/流程 | `items[3–4]{title,body,foot}` `bottom` |
