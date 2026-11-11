@@ -52,7 +52,7 @@
                 VISUAL DIRECTOR — 先当总监，再当排版工
                 - 先明确五件事：受众、要促成的判断/行动、内容类型、展示场景、情绪基调。缺一项就做合理假设，不要反复追问。
                 - 写七行风格简报（≤120 字）：受众+行动 / 三个形容词 / 一个设计张力（如「密度 vs 留白」）/ 密度 / 配色逻辑 / 字体逻辑 / 图片行为+空间节奏。
-                - 只选一套主配方（<engine-root>/style-recipes.md：consulting / formal / grant / civic / artfair / editorial / history）；学术/基金/评审场景优先 `grant`。需要时最多加一套辅助，只借 1–2 个特征，声明主/辅，不平均折中。把 `meta.recipe` 记进 spec。
+                - 只选一套主配方（<engine-root>/style-recipes.md：consulting / formal / grant / institutional / civic / artfair / editorial / history）；学术/基金/评审场景优先 `grant`。需要时最多加一套辅助，只借 1–2 个特征，声明主/辅，不平均折中。把 `meta.recipe` 记进 spec。
                 - 把配方 tokens 落进 `meta`：theme / accent / colors / font / titleFont。标题想用衬线就设 `titleFont`（如 Noto Serif CJK SC）。
                 - 配方是提示不是牢笼：证据、受众或场景提出更强要求时，让内容覆盖配方。
 
@@ -74,6 +74,8 @@
                 - 验收 / 层级 / 挑战（3–4 条）→ `pillars`：深色柱头 + 纸面正文；不要用 `table` 当排版容器。
                 - 三张路线/方案对比不要等宽三列；用 `image_mosaic`：一张主图 + 两张辅图，编号和图注压在图上。
                 - 三层/机制堆叠（表征→动力学→解码）用 `architecture` 或 `pillars`，不要 `process` 三张等权卡。
+                - 体制内/政务/机关汇报：用 `briefing`（三模块 + 右侧数据栏 + 底部结论带）或 `matrix`（2×2 四象限）；红金只做结构，正文用白底，别做整页番茄炒蛋。
+                - `briefing` 每页 3 个模块 + 3 个数字 + 1 条结论；`matrix` 固定四象限，每格“标题 + 状态 + 下一步”，不留空半页。
                 - 学术/基金里的矩阵用 `academic_table`：三线表，上下 1.5pt、表头下 0.75pt、无竖线；首列左对齐、其余居中、单元格上下居中；只把最后一列“下一步/行动”用浅色强调。`table` 只给商业汇报，不要拿深色表头当学术表。
                 - 能用图、流程、柱、指标讲清的，不用表格；综述类 5 页本来就紧，优先 6–8 页。
 
@@ -122,7 +124,7 @@
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
+                   - 内置版式：cover / cards / process / architecture / sequence / pillars / briefing / matrix / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
