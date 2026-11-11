@@ -835,20 +835,32 @@ class DeckBuilder:
         text_color = self.colors["text"]
         muted = "AFC3DA" if dark else self.colors["muted"]
         accent = self._accent_on(dark)
-        x, w = 6.55, 6.05
+        soft = bool(page.get("soft"))
+        x, w = (6.78, 5.82) if soft else (6.55, 6.05)
+        if soft:
+            self.box(slide, 6.30, 1.38, .012, 4.95, "D8C6B4")
         kicker = str(page.get("kicker", f"SECTION {number}")).upper()
         self.text(slide, kicker, x, 1.42, w, 0.3, 12, accent, True, tracking=180)
         self.text(slide, page["title"], x, 1.86, w, 2.0,
                   page.get("title_size", 40), text_color, True, font=self.head_font)
         self.box(slide, x, 4.06, 0.72, 0.05, accent)
-        cursor = 4.3
+        cursor = 4.18 if soft else 4.30
         if page.get("body"):
             self.text(slide, page["body"], x, cursor, w, 0.9, 17, muted)
-            cursor += 0.95
+            cursor += (1.02 if soft else .95)
         for position, item in enumerate((page.get("items") or [])[:4]):
-            y = cursor + position * 0.5
-            self.text(slide, f"{position + 1:02d}", x, y, 0.5, 0.26, 11, accent, True)
-            self.text(slide, item, x + 0.55, y - 0.02, w - 0.55, 0.34, 15, text_color)
+            y = cursor + position * (.50 if soft else .50)
+            if soft:
+                self.box(slide, x, y - .02, w, .44, "FBF6EE", rounded=True)
+                self.circle(slide, x + .12, y + .13, .21, .21, accent)
+                self.text(slide, f"{position + 1:02d}", x + .12, y + .13,
+                          .21, .21, 6.8, "FFFFFF", True, align=PP_ALIGN.CENTER,
+                          anchor=MSO_ANCHOR.MIDDLE)
+                self.text(slide, item, x + .46, y + .06, w - .58, .26, 11.6,
+                          text_color, True)
+            else:
+                self.text(slide, f"{position + 1:02d}", x, y, 0.5, 0.26, 11, accent, True)
+                self.text(slide, item, x + 0.55, y - 0.02, w - 0.55, 0.34, 15, text_color)
         if page.get("transition"):
             self.text(slide, page["transition"], x, 6.75, w, 0.3, 12, muted)
         total = page.get("sections")
@@ -1008,8 +1020,12 @@ class DeckBuilder:
                 self.text(slide, str(stat.get("label", "")), sx, stat_y + 0.55,
                           span - 0.15, 0.3, 10, muted)
         if page.get("source"):
-            self.text(slide, page["source"], x + 0.38, y + h - 0.32, w - 0.76, 0.24,
-                      9, muted)
+            # Keep the caption outside the frosted panel; muted text on a
+            # transparent panel loses contrast over a busy image.
+            sy = y + h + 0.04
+            self.box(slide, x, sy, w, 0.24, "FFFDF8")
+            self.text(slide, page["source"], x + 0.12, sy + 0.04, w - 0.24, 0.16,
+                      7.2, "muted")
 
     def quote_slide(self, slide, page):
         dark = self._dark()
@@ -2460,12 +2476,19 @@ class DeckBuilder:
                     ln.set("w", "0")
                     ln.append(tc_pr.makeelement(qn("a:noFill"), {}))
 
+            body_top, row_h = 2.75, .95
             for row_index, row in enumerate([headers] + rows):
                 for column_index, value in enumerate(row):
                     cell = table.cell(row_index, column_index)
                     cell.fill.solid()
                     if column_index == len(headers) - 1:
                         cell.fill.fore_color.rgb = RGBColor.from_string("F1E7DB")
+                    elif row_index == 0:
+                        cell.fill.fore_color.rgb = RGBColor.from_string("E8F0ED")
+                    elif column_index == 0:
+                        cell.fill.fore_color.rgb = RGBColor.from_string("FBF6EE")
+                    elif row_index % 2 == 0:
+                        cell.fill.fore_color.rgb = RGBColor.from_string("FBF6EE")
                     else:
                         cell.fill.fore_color.rgb = RGBColor.from_string("FFFFFF")
                     cell.margin_left = Inches(.10)
@@ -2473,22 +2496,49 @@ class DeckBuilder:
                     cell.margin_top = Inches(.04)
                     cell.margin_bottom = Inches(.04)
                     cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-                    cell.text = str(value)
-                    for paragraph in cell.text_frame.paragraphs:
-                        paragraph.alignment = (PP_ALIGN.LEFT if column_index == 0
-                                               else PP_ALIGN.CENTER)
-                        paragraph.font.name = self.font
-                        paragraph.font.size = Pt(12.0 if row_index == 0 else 13.0)
-                        paragraph.font.bold = row_index == 0 or column_index == 0
-                        paragraph.font.color.rgb = RGBColor.from_string(
-                            "176C88" if row_index == 0 else self.colors["text"])
-                        for run in paragraph.runs:
+                    if row_index and column_index == 0:
+                        # The tier number is a second line inside the first cell;
+                        # it keeps the column count stable while adding progression.
+                        cell.text = ""
+                        p1 = cell.text_frame.paragraphs[0]
+                        p1.alignment = PP_ALIGN.LEFT
+                        r1 = p1.add_run()
+                        r1.text = f"{row_index:02d}"
+                        r1.font.name = self.font
+                        r1.font.size = Pt(8.0)
+                        r1.font.bold = True
+                        r1.font.color.rgb = RGBColor.from_string(self.colors["accent"])
+                        p2 = cell.text_frame.add_paragraph()
+                        p2.alignment = PP_ALIGN.LEFT
+                        r2 = p2.add_run()
+                        r2.text = str(value)
+                        r2.font.name = self.font
+                        r2.font.size = Pt(13.0)
+                        r2.font.bold = True
+                        r2.font.color.rgb = RGBColor.from_string(self.colors["text"])
+                        for run in (r1, r2):
                             run._r.get_or_add_rPr().append(
                                 run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
+                    else:
+                        cell.text = str(value)
+                        for paragraph in cell.text_frame.paragraphs:
+                            paragraph.alignment = (PP_ALIGN.LEFT if column_index == 0
+                                                   else PP_ALIGN.CENTER)
+                            paragraph.font.name = self.font
+                            paragraph.font.size = Pt(12.0 if row_index == 0 else 13.0)
+                            paragraph.font.bold = row_index == 0 or column_index == 0
+                            paragraph.font.color.rgb = RGBColor.from_string(
+                                "176C88" if row_index == 0 else self.colors["text"])
+                            for run in paragraph.runs:
+                                run._r.get_or_add_rPr().append(
+                                    run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
                     clear_academic_borders(cell)
-            # Three-line rules: header rule + bottom rule.
+            # Three-line rules + a left tier rail that reads as 01→04.
             self.box(slide, .60, 2.75, 12.1, .010, "1C2B3A")
             self.box(slide, .60, 6.55, 12.1, .022, "1C2B3A")
+            for row_index in range(1, len(rows) + 1):
+                self.box(slide, .60, body_top + (row_index - 1) * row_h,
+                         .045, row_h, "accent")
         elif layout == "table":
             data_headers, data_rows = page["headers"], page["rows"]
             headers = ["№"] + list(data_headers)

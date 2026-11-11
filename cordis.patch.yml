@@ -77,7 +77,9 @@
                 LAYOUT ROUTER — 先问这段内容该长什么样
                 - 先写页面任务，再选版式；不要把任何配方当成固定 5 页骨架。相邻页可以同构，只要内容关系不同；5 页至少 3 种结构。不要按固定页序套骨架。
                 - 反模板检查：去掉标题、图片、数字，只剩轮廓；如果这套轮廓换一个课题也成立，就是模板，不是这页的判断。
-                - 版式候选池（按页面任务选，不是顺序）：封面 `light_cover` / `image_hero` / `image_statement`；问题 `evidence_grid` / `compare_grid` / `image_panel_strip`；机制 `architecture` / `route_map` / `glass_canvas` / `figure_annotated` / `pillars`；恢复 `sequence` / `image_panel` / `briefing` / `heat_bars`；验证 `academic_table` / `matrix` / `pillars` / `kpi_showcase`。每次至少从候选池里认真比两个，再选一个。
+                - 版式候选池（按页面任务选，不是顺序）：封面 `light_cover` / `image_hero` / `image_statement` / `glass_overlay`；问题 `evidence_grid` / `compare_grid` / `image_panel_strip`；机制 `architecture` / `route_map` / `glass_canvas` / `figure_annotated` / `pillars`；恢复 `sequence` / `image_panel` / `briefing` / `heat_bars`；验证 `academic_table` / `matrix` / `pillars` / `kpi_showcase`。每次至少从候选池里认真比两个，再选一个。
+                - **版式预算**：同一章每种 layout 最多 2 页；`sequence` / `figure_annotated` 最多 1 页，除非本来就是连续过程；相邻页不同构。多 agent 合稿时先读/更新共享 `layout-ledger.json`：`python layout_ledger.py claim --file <ledger> --layout <layout> --owner <part> --page <P03>`；到上限就换候选。
+                - **没有合适版式就自建**：现有 layout 表达不了这页关系时，直接在 builder 里写一次性原生版式；不要为了省事把每页都塞进 `sequence` 或 `architecture`。
                 - 方法闭环 / 流程（3–4 步）→ `sequence`；短链在页内居中，节点用胶囊，不要左对齐一排方框：一条主轴、上下交替；不要 `process` 四张等权圆角卡。
                 - 机制 / 数据 / 证据页 → `image_panel`：一侧整幅图，另一侧实心纸面放标题、正文、要点、指标；不要 `image_overlay` 把字压在图上。
                 - 验收 / 层级 / 挑战（3–4 条）→ `pillars`：深色柱头 + 纸面正文；不要用 `table` 当排版容器。
@@ -107,11 +109,13 @@
 
                 IMAGE PROMINENCE — 有图就要让图成为版面
                 - 用户提供图片时，5 页里至少 2 页图片主导：满幅背景、单侧出血或 ≥35% 版面；不要把小图塞进右侧面板当装饰。
-                - 封面优先 `glass_overlay`：满幅图 + 磨砂文字面板；文字不缩、图不裁成小卡。没有合适实拍时才退回 `light_cover` 拱窗。
+                - **封面不预设固定版式**，按图与文案选：横向图/侧边留白/3 行以上文字 → `glass_overlay`；强氛围图/短标题 → `image_hero`；竖图/主体居中/要安静 → `light_cover` 拱窗；一张强图 + 一句短话 → `image_statement`；章节开场 → `section_number`。每次至少比 2 种，写一句为什么选它。
                 - 文字可直接压图，但后面必须有磨砂玻璃/半透明面板/渐变蒙版；不允许裸贴长正文。
                 - P2/P4 这类“左内容右说明”页，右侧若有图，图至少占该栏 40%，或直接做成整栏背景 + 磨砂面板；不要右侧只剩文字。
                 - 一张图至少会三种用法：满幅/单侧出血、拱窗/形状相交、抠图/图片填字/去饱和背景。不要一张图只插一次。
                 - 层次感用渐变光、柔和阴影、叠压；不要整页发光，不要每个元素都阴影。
+                - 封面不要惯性套同一版式；图、文案和语气决定选型。写 spec 前先列 2 个封面候选（版式 + 一句理由），选定后说明为什么不是另一个。
+                - 章节/目录过渡页可用 `section_number` + `art: image` + `soft: true`：左侧图片填字编号，右侧标题、本章要点、进度点、下一章；不要把过渡页做成封面。
 
                 FLOW DIAGRAM — 流程图不是几条裸箭头
                 - 流程图/技术路线优先 `route_map` / `flow_chart` / `glass_canvas`；节点用圆角框或圆形编号，回环用正交折线/弧线，关键站点加图标徽章。
