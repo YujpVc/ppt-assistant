@@ -73,7 +73,7 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | --- | --- | --- |
 | `architecture` | 3 层总体路线：深色主张带 + 大编号 + 细网格 + 回写环 + 验证跑道 | `items[3]{title,body}` `band` `loop` `steps` `bottom_title` |
 | `academic_table` | 学术三线表：表题 + 上下粗线 + 表头细线 + 末列浅底，无竖线 | `headers` `rows` `caption` `source` |
-| `briefing` | 高密度简报：标题带 + 三模块 + 数据栏 + chips + 底部结论 | `title` `items[3]` `stats[3]` `chips` `quote` `bottom` |
+| `briefing` | 高密度简报：标题带 + 3–4 模块 + 数据栏 + chips + 底部结论 | `title` `items[3–4]` `stats[3]` `chips` `quote` `bottom` |
 | `matrix` | 2×2 四象限：每格编号 + 标题 + 状态 + 代表工作 + 下一步 | `items[4]{title,body,note,tag,value}` `bottom` |
 | `sequence` | 之字形主轴：3–4 步上下交替，适合机制/流程 | `items[3–4]{title,body,foot}` `bottom` |
 | `pillars` | 3–4 根深色柱头 + 纸面正文，适合验收/并列机制 | `items[3–4]{title,body,foot}` `bottom` |

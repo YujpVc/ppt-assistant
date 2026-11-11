@@ -291,8 +291,8 @@ def validate(spec: dict, base: Path) -> None:
                     picture.verify()
         if layout == "briefing":
             items = slide.get("items")
-            if not isinstance(items, list) or len(items) != 3:
-                raise ValueError(f"slide {index}: briefing requires exactly 3 items")
+            if not isinstance(items, list) or not 3 <= len(items) <= 4:
+                raise ValueError(f"slide {index}: briefing requires 3–4 items")
             if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
                    for item in items):
                 raise ValueError(f"slide {index}: every briefing item requires title and body")
@@ -1735,16 +1735,19 @@ class DeckBuilder:
             self.text(slide, page["title"], .70, .48, 11.9, .55,
                       page.get("title_size", 27), "FFFFFF", True, font=self.head_font)
             self.box(slide, .70, 1.28, 12.0, .018, gold)
+            n = len(items)
+            step = 1.52 if n == 3 else 1.10
+            row_h = 1.28 if n == 3 else 1.02
             for index, item in enumerate(items):
-                y = 1.55 + index * 1.52
-                self.box(slide, .70, y, 7.25, 1.28, "FFFFFF")
-                self.box(slide, .70, y, .07, 1.28, accent)
+                y = 1.55 + index * step
+                self.box(slide, .70, y, 7.25, row_h, "FFFFFF")
+                self.box(slide, .70, y, .07, row_h, accent)
                 self.text(slide, f"{index + 1:02d}", .95, y + .12, .55, .30,
                           15, accent, True)
                 self.text(slide, item["title"], 1.55, y + .10, 3.9, .32,
                           15, "text", True)
-                self.text(slide, item["body"], 1.55, y + .44, 4.2, .62,
-                          11.5, "muted")
+                self.text(slide, item["body"], 1.55, y + .44, 4.2,
+                          .62 if n == 3 else .38, 11.5 if n == 3 else 10.5, "muted")
                 if item.get("value"):
                     self.text(slide, str(item["value"]), 5.95, y + .14, 1.6, .42,
                               22, accent, True, font=self.head_font)
