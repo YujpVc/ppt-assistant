@@ -126,7 +126,7 @@
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / light_cover / cards / process / architecture / sequence / pillars / briefing / matrix / figure_annotated / compare_grid / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
+                   - 内置版式：cover / light_cover / cards / process / architecture / sequence / pillars / briefing / matrix / figure_annotated / evidence_grid / diagonal_compare / compare_grid / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
