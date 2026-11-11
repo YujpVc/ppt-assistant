@@ -74,7 +74,8 @@
                 - 验收 / 层级 / 挑战（3–4 条）→ `pillars`：深色柱头 + 纸面正文；不要用 `table` 当排版容器。
                 - 三张路线/方案对比不要等宽三列；用 `image_mosaic`：一张主图 + 两张辅图，编号和图注压在图上。
                 - 三层/机制堆叠（表征→动力学→解码）用 `architecture` 或 `pillars`，不要 `process` 三张等权卡。
-                - `table` 只给真正的二维数值矩阵；用 table 时必须行号列 + 深色表头 + 去竖线 + 单元格上下左右居中/首列左对齐 + 隔行底色。能用图、流程、柱、指标讲清的，不用表格。
+                - 学术/基金里的矩阵用 `academic_table`：三线表，上下 1.5pt、表头下 0.75pt、无竖线；首列左对齐、其余居中、单元格上下居中；只把最后一列“下一步/行动”用浅色强调。`table` 只给商业汇报，不要拿深色表头当学术表。
+                - 能用图、流程、柱、指标讲清的，不用表格；综述类 5 页本来就紧，优先 6–8 页。
 
                 PAGE PLAN — 金字塔：每页先有结论，再有证据
                 - 每个正文页的标题必须是一句话结论（「执行率 88.5%，预算仍有余量」），不是名词短语（「预算情况」）。听众只读标题也能把整套故事串起来。
@@ -121,7 +122,7 @@
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / chart / closing，
+                   - 内置版式：cover / cards / process / architecture / sequence / pillars / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
