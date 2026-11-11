@@ -87,7 +87,7 @@ def audit(path: Path, max_ppi: float = 450.0, min_area: float = 0.12,
             text_pt = text_px / ppi * 72.0 if text_px else 0.0
             if text_px:
                 dense = (min_area <= area < .85 and text_pt < 13.0
-                         and word_count >= 5 and white_pct >= 12.0)
+                         and word_count >= 5 and white_pct >= 25.0)
             else:
                 # No OCR evidence: only flag very high pixel density, where a
                 # pasted paper figure is almost certainly over-detailed.
