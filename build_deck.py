@@ -905,9 +905,21 @@ class DeckBuilder:
         if page.get("body"):
             self.text(slide, page["body"], tx, cursor, tw, 1.15, 16, body_color)
             cursor += 1.2
+        for index, bullet in enumerate((page.get("bullets") or [])[:3]):
+            by = cursor - .12 + index * .38
+            self.box(slide, tx, by + .09, .08, .08, accent)
+            self.text(slide, bullet, tx + .22, by, tw - .22, .30, 11.5, body_color)
         stats = page.get("stats") or []
-        if stats:
-            stat_y = y + h - 1.35
+        if stats and page.get("stats_outside"):
+            for index, stat in enumerate(stats[:3]):
+                sx = .80 + index * 2.20
+                self.box(slide, sx, 6.00, 2.05, .78, "FFFFFF")
+                self.text(slide, str(stat.get("value", "")), sx + .12, 6.04,
+                          1.85, .42, 19, accent, True, font=self.head_font)
+                self.text(slide, str(stat.get("label", "")), sx + .12, 6.50,
+                          1.85, .20, 7.2, muted)
+        if stats and not page.get("stats_outside"):
+            stat_y = y + h - 1.05
             span = tw / len(stats)
             for index, stat in enumerate(stats[:3]):
                 sx = tx + index * span
@@ -1748,6 +1760,10 @@ class DeckBuilder:
             self.box(slide, 0, 0, 13.333, 7.5, "bg")
             self.artwork(slide, page["image"], 7.15, .55, 5.55, 6.55, radius=0.0,
                          mask="arch", treatment=page.get("treatment"))
+            if page.get("art_text"):
+                self.type_art(slide, str(page["art_text"]), (.55, 4.75, 4.8, 1.55),
+                              mode="image", image=page["image"],
+                              opacity=page.get("art_opacity", .13))
             self.text(slide, str(page.get("kicker", "GRANT PROPOSAL")).upper(),
                       .80, .78, 5.8, .24, 9, "accent", True)
             self.box(slide, .80, 1.10, .90, .045, "accent")
