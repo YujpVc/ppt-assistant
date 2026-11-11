@@ -76,6 +76,7 @@
                 - 三层/机制堆叠（表征→动力学→解码）用 `architecture` 或 `pillars`，不要 `process` 三张等权卡。
                 - 体制内/政务/机关汇报：用 `briefing`（三模块 + 右侧数据栏 + 底部结论带）或 `matrix`（2×2 四象限）；红金只做结构，正文用白底，别做整页番茄炒蛋。
                 - 学术/技术稿要“满”时也可以借 `briefing`/`matrix` 的结构，但颜色走 `grant` 的青灰/奶白，不要把红金带进来；`briefing` 加 3 个 chips，`matrix` 每格加 value + note，`image_mosaic` 加底部 strip。
+                - 标书/基金页：默认浅色底，不要大幅深色；图片只做证据（拱窗封面、带 3 个标注的机制图、三张小图对比），不计入信息密度；密度靠文字模块、准则矩阵、数字和来源。
                 - `briefing` 每页 3–4 个模块 + 3 个数字 + 3 个 chips + 1 条结论；`matrix` 固定四象限，每格“标题 + 状态 + 代表工作 + 下一步”，不留空半页。
                 - 学术/基金里的矩阵用 `academic_table`：三线表，上下 1.5pt、表头下 0.75pt、无竖线；首列左对齐、其余居中、单元格上下居中；只把最后一列“下一步/行动”用浅色强调。`table` 只给商业汇报，不要拿深色表头当学术表。
                 - 能用图、流程、柱、指标讲清的，不用表格；综述类 5 页本来就紧，优先 6–8 页。
@@ -90,7 +91,7 @@
 
                 ACADEMIC & GRANT — 学术/基金 5 页先过评审问题，不搬论文小节
                 - 场景命中「国自然 / 基金 / 研究方案 / 特色创新 / 论文评审」时，主配方选 `grant`；标题用判断句，正文 ≥18pt；禁止把 `3.1.4.1`、`4.4` 这类论文编号带上屏。
-                - 5 页骨架：封面 → 总体路线（`briefing`：三模块 + 数据栏 + 结论带）→ 机制 1（`image_band` 满幅图 + 三栏证据）→ 机制 2（`image_mosaic` 一主两辅 + 底部对照）→ 瓶颈/验证（`matrix` 2×2 + 结论带）。每页只回答一个评审问题。
+                - 5 页骨架（标书/基金）：`light_cover`（浅色封面 + 拱窗图）→ `briefing`（三模块 + 浅色数据栏 + chips）→ `figure_annotated`（一张图 + 三个标注 + 右栏证据）→ `compare_grid`（三路线 × 四准则矩阵）→ `academic_table`（三线表）。每页只回答一个评审问题。
                 - 不要用 2×4 长句表把创新点全塞进去；拆成 3 个创新支柱，每个配 1–2 个验证指标。
                 - 「三条主线 / 四级验证」要落到图上：三条主线用 `architecture` 的三框，四级验证放底部一条证据带，不用正文复述。
 
@@ -125,7 +126,7 @@
                 PPT ENGINE — built-in `build_deck.py` (JSON spec → editable PPTX)
                    CLI: `bash <engine-root>/run_py.sh build_deck.py <spec.json> <output.pptx>`
                    - 规格中的图片路径相对于 spec 文件解析；不会扫描、导入或执行用户工作区脚本。
-                   - 内置版式：cover / cards / process / architecture / sequence / pillars / briefing / matrix / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
+                   - 内置版式：cover / light_cover / cards / process / architecture / sequence / pillars / briefing / matrix / figure_annotated / compare_grid / image_band / image_mosaic / image_panel / image_panel_strip / comparison / image_split / image_grid / table / academic_table / chart / closing，
                      图片版式：image_hero / image_overlay / image_wall / image_triptych；
                      炫技版式：section_number（巨字 + 网格 + 进度点）、image_statement（满幅 + 巨型字艺）、
                      split_diagonal（双图斜切）、glass_overlay（满幅 + 毛玻璃面板）、heat_bars（甘特时间轴）、
