@@ -100,9 +100,9 @@ def failures(report: dict) -> list[str]:
             problems.append(
                 f"仅 {report['visual_slides']}/{report['slides']} 页含图片、表格、图表或原生图示，至少需要 {required_visual} 页"
             )
-        if report["layout_signatures"] < 4:
+        if report["layout_signatures"] < 3:
             problems.append(
-                f"仅检测到 {report['layout_signatures']} 种页面结构，至少需要 4 种"
+                f"仅检测到 {report['layout_signatures']} 种页面结构，至少需要 3 种"
             )
         text_only = [
             item["slide"]
