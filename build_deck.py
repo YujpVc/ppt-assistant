@@ -1909,11 +1909,14 @@ class DeckBuilder:
                         self.text(slide, str(item["label"]), tx + 6.45, iy + .44,
                                   1.4, .18, 7.2, muted)
             if page.get("chips"):
-                for index, chip in enumerate(page["chips"][:3]):
-                    cx = .85 + index * 2.62
-                    self.box(slide, cx, 6.10, 2.42, .32, "FFFFFF")
+                chips = page["chips"][:4]
+                chip_w = 2.42 if len(chips) == 3 else 1.93
+                gap = 2.62 if len(chips) == 3 else 2.03
+                for index, chip in enumerate(chips):
+                    cx = .85 + index * gap
+                    self.box(slide, cx, 6.10, chip_w, .32, "FFFFFF")
                     self.box(slide, cx, 6.10, .05, .32, accent)
-                    self.text(slide, chip, cx + .14, 6.17, 2.18, .18, 8.0, ink)
+                    self.text(slide, chip, cx + .12, 6.17, chip_w - .18, .18, 7.6, ink)
             self.text(slide, page.get("rail_title", "关键坐标"), 9.55, .62, 2.95, .24,
                       9, accent, True)
             for index, stat in enumerate(page.get("stats", [])[:3]):
