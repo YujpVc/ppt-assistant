@@ -69,6 +69,9 @@ def audit(path: Path, max_ppi: float = 450.0, min_area: float = 0.12,
         for shape in slide.shapes:
             if shape.shape_type != MSO_SHAPE_TYPE.PICTURE:
                 continue
+            # Frosted-glass panels are UI surfaces, not pasted paper figures.
+            if shape.name.lower() in {"glass_panel", "frosted_panel"}:
+                continue
             try:
                 with Image.open(io.BytesIO(shape.image.blob)) as image:
                     px_w, px_h = image.size

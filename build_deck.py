@@ -979,7 +979,8 @@ class DeckBuilder:
                                             self.colors["bg"] if dark else "FFFFFF"),
                               opacity=page.get("glass_opacity", 0.34 if dark else 0.22),
                               blur=30, border=0.35)
-        self._add_picture(slide, panel, x, y, w, h)
+        panel_shape = self._add_picture(slide, panel, x, y, w, h)
+        panel_shape.name = "glass_panel"
         light = ink == "light"
         title_color = "FFFFFF" if light else self.colors["text"]
         body_color = "DCE8F6" if light else self.colors["text"]
@@ -2054,7 +2055,8 @@ class DeckBuilder:
                                       tint=page.get("glass_tint", self.colors["bg"] if dark else "FFFFFF"),
                                       opacity=page.get("glass_opacity", 0.30 if dark else 0.24),
                                       blur=30, border=0.35)
-                self._add_picture(slide, panel, x, y, w, h)
+                panel_shape = self._add_picture(slide, panel, x, y, w, h)
+                panel_shape.name = "glass_panel"
             accent = self.colors["accent"]
             ink = self.colors["text"]
             muted = self.colors["muted"]
