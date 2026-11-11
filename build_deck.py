@@ -455,6 +455,24 @@ class DeckBuilder:
             shape._element.remove(style)
         return shape
 
+
+
+    def frame(self, shape, color="1C1B19", width=1.2):
+        shape.line.color.rgb = RGBColor.from_string(self.colors.get(color, color))
+        shape.line.width = Pt(width)
+        return shape
+
+    def _arrow(self, slide, x1, y1, x2, y2, color="2F5597", width=1.5):
+        conn = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT,
+                                          Inches(x1), Inches(y1),
+                                          Inches(x2), Inches(y2))
+        conn.line.color.rgb = RGBColor.from_string(self.colors.get(color, color))
+        conn.line.width = Pt(width)
+        ln = conn.line._get_or_add_ln()
+        tail = ln.makeelement(qn("a:tailEnd"), {"type": "triangle", "w": "med", "len": "med"})
+        ln.append(tail)
+        return conn
+
     def text(self, slide, value, x, y, w, h, size=21, color="text", bold=False,
              anchor=None, align=None, tracking=None, font=None):
         """Fit text conservatively; reject dense content instead of shrinking it."""
@@ -2057,7 +2075,8 @@ class DeckBuilder:
             chain = page["chain"]
             for index, label in enumerate(chain):
                 cx = .60 + index * 4.12
-                self.box(slide, cx, 1.32, 3.58, .58, "FFFFFF")
+                sh = self.box(slide, cx, 1.32, 3.58, .58, "DCE6EF")
+                self.frame(sh)
                 self.box(slide, cx, 1.32, .05, .58, "accent")
                 self.text(slide, f"0{index + 1}", cx + .14, 1.39, .30, .18, 7.5, "accent", True)
                 self.text(slide, label, cx + .48, 1.38, 2.95, .42, 10.5, "text", True)
@@ -2070,32 +2089,38 @@ class DeckBuilder:
             # Three mechanism columns with local evidence images.
             for index, item in enumerate(page["items"]):
                 x = .60 + index * 4.10
-                self.box(slide, x, 2.42, 3.90, 2.95, "FBF6EE")
+                self.box(slide, x, 2.42, 3.90, 2.95, "FFFFFF")
                 self.box(slide, x, 2.42, 3.90, .30, "DCE6EF")
                 self.text(slide, item["title"], x + .12, 2.48, 3.65, .20, 9.0, "text", True)
                 if item.get("image"):
                     self.artwork(slide, item["image"], x + .12, 2.80, 3.66, 1.02, radius=0.02)
                 kind = item.get("kind")
                 if page.get("detailed") and kind == "graph":
-                    nodes = [("S", .30, .22), ("V1", 1.42, .20), ("V2", .86, .58), ("V3", 2.16, .58), ("V4", 1.48, .98)]
-                    for label, nx, ny in nodes:
-                        bx, by = x + .18 + nx, 3.94 + ny
-                        self.box(slide, bx, by, .38, .24, "FFFFFF", rounded=True)
-                        self.text(slide, label, bx + .02, by + .05, .34, .14, 6.5, "text", True, align=PP_ALIGN.CENTER)
-                    self.text(slide, "S → V1/V2 → V3 → V4", x + .60, 5.14, 3.0, .16, 6.5, "muted")
-                    self.box(slide, x + .18, 5.22, 3.55, .030, "D8C6B4")
-                    self.text(slide, "计划窗口", x + .18, 5.24, 1.4, .12, 5.8, "muted")
+                    steps = [("S", "样本准备"), ("V1", "设备准备 / 接种"),
+                             ("V2", "诱导培养"), ("V3", "状态检查 / 继代")]
+                    for vi, (code, label) in enumerate(steps):
+                        vy = 3.94 + vi * .32
+                        self.box(slide, x + .14, vy, 3.54, .25, "DCE6EF" if vi < 3 else "FFFFFF")
+                        self.text(slide, code, x + .22, vy + .05, .30, .13, 5.8, "accent", True)
+                        self.text(slide, label, x + .56, vy + .04, 2.95, .16, 7.2, "text")
+                        if vi < 3:
+                            self._arrow(slide, x + .28, vy + .25, x + .28, vy + .32)
+                    self.text(slide, "任务依赖：准备 → 接种 → 培养 → 检查", x + .14, 5.28, 3.4, .12, 5.4, "muted")
                 elif page.get("detailed") and kind == "matrix":
                     rows = [("t1", "c1", True), ("t2", "c2", True), ("t3", "c3", False)]
                     self.text(slide, "任务需求", x + .16, 3.90, .9, .16, 6.0, "muted")
                     self.text(slide, "可用能力", x + 3.00, 3.90, .8, .16, 6.0, "muted")
                     for idx, (t, c, solid) in enumerate(rows):
                         ty = 4.18 + idx * .34
-                        self.box(slide, x + .16, ty, .42, .20, "FFFFFF", rounded=True)
-                        self.text(slide, t, x + .20, ty + .03, .34, .12, 6.2, "text", True)
-                        self.box(slide, x + 3.22, ty, .42, .20, "FFFFFF", rounded=True)
-                        self.text(slide, c, x + 3.26, ty + .03, .34, .12, 6.2, "text", True)
-                        self.box(slide, x + .60, ty + .09, 2.58, .008, "2F5597" if solid else "B8C4D4")
+                        task_name = ["样本转移", "培养等待", "结果检查"][idx]
+                        cap_name = ["抓取/交接", "培养设备", "视觉观测"][idx]
+                        sh = self.box(slide, x + .14, ty, 1.22, .20, "DCE6EF", rounded=True)
+                        self.frame(sh)
+                        self.text(slide, f"{t} {task_name}", x + .19, ty + .03, 1.12, .12, 5.8, "text", True)
+                        sh = self.box(slide, x + 2.78, ty, 1.00, .20, "FFFFFF", rounded=True)
+                        self.frame(sh)
+                        self.text(slide, f"{c} {cap_name}", x + 2.82, ty + .03, .92, .12, 5.6, "text", True)
+                        self.box(slide, x + 1.38, ty + .09, 1.36, .008, "2F5597" if solid else "B8C4D4")
                     self.text(slide, "— 约束通过    - - 候选待核", x + .18, 5.30, 3.3, .14, 6.0, "muted")
                 elif page.get("detailed") and kind == "state":
                     self.box(slide, x + .18, 4.22, 3.45, .010, "D8C6B4")
@@ -2104,9 +2129,14 @@ class DeckBuilder:
                         self.box(slide, ex, 4.12, .18, .18, "FFFFFF", rounded=True)
                         self.text(slide, label, ex + .01, 4.15, .16, .10, 5.5, "muted", True, align=PP_ALIGN.CENTER)
                         self.text(slide, ["操作", "反馈", "观测"][idx], ex - .10, 4.40, .55, .14, 5.8, "muted")
-                    self.box(slide, x + .65, 4.66, 2.30, .28, "DCE6EF")
+                    sh = self.box(slide, x + .65, 4.66, 2.30, .28, "DCE6EF")
+                    self.frame(sh)
                     self.text(slide, "状态推理 → 接续 / 恢复 / 核查", x + .78, 4.73, 2.1, .14, 6.2, "text", True)
-                    self.text(slide, "历史证据 × 当前观测", x + .18, 5.18, 2.6, .14, 6.0, "muted")
+                    for oi, outcome in enumerate(["已完成", "执行中", "待执行", "待核实"]):
+                        ox = x + .18 + oi * .88
+                        self.box(slide, ox, 5.04, .82, .22, "FFFFFF")
+                        self.text(slide, outcome, ox + .03, 5.08, .76, .12, 5.3, "muted", align=PP_ALIGN.CENTER)
+                    self.text(slide, "历史证据 × 当前观测", x + .18, 5.30, 2.6, .12, 5.5, "muted")
                 else:
                     for b_index, bullet in enumerate((item.get("bullets") or [])[:3]):
                         by = 3.92 + b_index * .43
@@ -2119,13 +2149,14 @@ class DeckBuilder:
             # Four validation gates.
             for index, step in enumerate(page["steps"]):
                 x = .60 + index * 3.02
-                self.box(slide, x, 5.62, 2.80, .56, "FFFFFF")
+                sh = self.box(slide, x, 5.62, 2.80, .56, "FFFFFF")
+                self.frame(sh)
                 self.box(slide, x, 5.62, .045, .56, "accent")
                 self.text(slide, f"0{index + 1}", x + .12, 5.68, .28, .16, 7.0, "accent", True)
                 self.text(slide, step, x + .42, 5.66, 2.26, .24, 9.0, "text", True)
                 if index < 3:
                     self.text(slide, "→", x + 2.82, 5.74, .20, .18, 8, "accent", True)
-            self.text(slide, "共同验证", .62, 5.36, 1.1, .18, 8.5, "accent", True)
+            self.text(slide, "共同验证", .62, 5.44, 1.1, .18, 8.5, "accent", True)
             if page.get("source"):
                 self.text(slide, page["source"], .62, 6.42, 11.95, .18, 7.2, "muted")
         elif layout == "light_cover":
