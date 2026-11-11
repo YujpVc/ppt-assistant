@@ -2076,9 +2076,13 @@ class DeckBuilder:
                 if item.get("image"):
                     self.artwork(slide, item["image"], x + .12, 2.80, 3.66, 1.02, radius=0.02)
                 for b_index, bullet in enumerate((item.get("bullets") or [])[:3]):
-                    by = 3.92 + b_index * .37
-                    self.box(slide, x + .12, by + .07, .07, .07, "accent")
-                    self.text(slide, bullet, x + .28, by, 3.52, .28, 8.0, "text")
+                    by = 3.92 + b_index * .43
+                    self.box(slide, x + .12, by, 3.60, .34, "FFFFFF")
+                    self.box(slide, x + .12, by, .045, .34, "accent")
+                    self.text(slide, f"0{b_index + 1}", x + .24, by + .08, .28, .16, 6.8, "accent", True)
+                    self.text(slide, bullet, x + .56, by + .07, 3.02, .22, 7.6, "text")
+                    if b_index < 2:
+                        self.text(slide, "↓", x + 1.80, by + .33, .20, .16, 8, "accent", True)
             # Four validation gates.
             for index, step in enumerate(page["steps"]):
                 x = .60 + index * 3.02
