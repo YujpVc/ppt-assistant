@@ -2075,14 +2075,47 @@ class DeckBuilder:
                 self.text(slide, item["title"], x + .12, 2.48, 3.65, .20, 9.0, "text", True)
                 if item.get("image"):
                     self.artwork(slide, item["image"], x + .12, 2.80, 3.66, 1.02, radius=0.02)
-                for b_index, bullet in enumerate((item.get("bullets") or [])[:3]):
-                    by = 3.92 + b_index * .43
-                    self.box(slide, x + .12, by, 3.60, .34, "FFFFFF")
-                    self.box(slide, x + .12, by, .045, .34, "accent")
-                    self.text(slide, f"0{b_index + 1}", x + .24, by + .08, .28, .16, 6.8, "accent", True)
-                    self.text(slide, bullet, x + .56, by + .07, 3.02, .22, 7.6, "text")
-                    if b_index < 2:
-                        self.text(slide, "↓", x + 1.80, by + .33, .20, .16, 8, "accent", True)
+                kind = item.get("kind")
+                if page.get("detailed") and kind == "graph":
+                    nodes = [("S", .30, .22), ("V1", 1.42, .20), ("V2", .86, .58), ("V3", 2.16, .58), ("V4", 1.48, .98)]
+                    for label, nx, ny in nodes:
+                        bx, by = x + .18 + nx, 3.94 + ny
+                        self.box(slide, bx, by, .38, .24, "FFFFFF", rounded=True)
+                        self.text(slide, label, bx + .02, by + .05, .34, .14, 6.5, "text", True, align=PP_ALIGN.CENTER)
+                    self.text(slide, "S → V1/V2 → V3 → V4", x + .60, 5.14, 3.0, .16, 6.5, "muted")
+                    self.box(slide, x + .18, 5.22, 3.55, .030, "D8C6B4")
+                    self.text(slide, "计划窗口", x + .18, 5.24, 1.4, .12, 5.8, "muted")
+                elif page.get("detailed") and kind == "matrix":
+                    rows = [("t1", "c1", True), ("t2", "c2", True), ("t3", "c3", False)]
+                    self.text(slide, "任务需求", x + .16, 3.90, .9, .16, 6.0, "muted")
+                    self.text(slide, "可用能力", x + 3.00, 3.90, .8, .16, 6.0, "muted")
+                    for idx, (t, c, solid) in enumerate(rows):
+                        ty = 4.18 + idx * .34
+                        self.box(slide, x + .16, ty, .42, .20, "FFFFFF", rounded=True)
+                        self.text(slide, t, x + .20, ty + .03, .34, .12, 6.2, "text", True)
+                        self.box(slide, x + 3.22, ty, .42, .20, "FFFFFF", rounded=True)
+                        self.text(slide, c, x + 3.26, ty + .03, .34, .12, 6.2, "text", True)
+                        self.box(slide, x + .60, ty + .09, 2.58, .008, "2F5597" if solid else "B8C4D4")
+                    self.text(slide, "— 约束通过    - - 候选待核", x + .18, 5.30, 3.3, .14, 6.0, "muted")
+                elif page.get("detailed") and kind == "state":
+                    self.box(slide, x + .18, 4.22, 3.45, .010, "D8C6B4")
+                    for idx, label in enumerate(["e1", "e2", "e3"]):
+                        ex = x + .38 + idx * 1.30
+                        self.box(slide, ex, 4.12, .18, .18, "FFFFFF", rounded=True)
+                        self.text(slide, label, ex + .01, 4.15, .16, .10, 5.5, "muted", True, align=PP_ALIGN.CENTER)
+                        self.text(slide, ["操作", "反馈", "观测"][idx], ex - .10, 4.40, .55, .14, 5.8, "muted")
+                    self.box(slide, x + .65, 4.66, 2.30, .28, "DCE6EF")
+                    self.text(slide, "状态推理 → 接续 / 恢复 / 核查", x + .78, 4.73, 2.1, .14, 6.2, "text", True)
+                    self.text(slide, "历史证据 × 当前观测", x + .18, 5.18, 2.6, .14, 6.0, "muted")
+                else:
+                    for b_index, bullet in enumerate((item.get("bullets") or [])[:3]):
+                        by = 3.92 + b_index * .43
+                        self.box(slide, x + .12, by, 3.60, .34, "FFFFFF")
+                        self.box(slide, x + .12, by, .045, .34, "accent")
+                        self.text(slide, f"0{b_index + 1}", x + .24, by + .08, .28, .16, 6.8, "accent", True)
+                        self.text(slide, bullet, x + .56, by + .07, 3.02, .22, 7.6, "text")
+                        if b_index < 2:
+                            self.text(slide, "↓", x + 1.80, by + .33, .20, .16, 8, "accent", True)
             # Four validation gates.
             for index, step in enumerate(page["steps"]):
                 x = .60 + index * 3.02
