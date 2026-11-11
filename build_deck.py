@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "glass_canvas", "flow_chart", "diagram_page", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
+LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "glass_canvas", "flow_chart", "route_map", "diagram_page", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
            "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -324,6 +324,15 @@ def validate(spec: dict, base: Path) -> None:
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: diagram_page requires an image")
             assets = [slide]
+        if layout == "route_map":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: route_map requires exactly 3 columns")
+            if not slide.get("chain") or len(slide["chain"]) != 3:
+                raise ValueError(f"slide {index}: route_map requires exactly 3 chain nodes")
+            if not slide.get("steps") or len(slide["steps"]) != 4:
+                raise ValueError(f"slide {index}: route_map requires exactly 4 validation steps")
+            assets = [slide] + items
         if layout == "light_cover":
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: light_cover requires an image")
@@ -2043,6 +2052,45 @@ class DeckBuilder:
                 self.text(slide, step, 9.70, sy - .03, 3.0, .18, 8.0, "muted")
             if page.get("source"):
                 self.text(slide, page["source"], 9.50, 6.95, 3.35, .20, 7.2, "muted")
+        elif layout == "route_map":
+            # Top chain: three functions of one task state, plus feedback.
+            chain = page["chain"]
+            for index, label in enumerate(chain):
+                cx = .60 + index * 4.12
+                self.box(slide, cx, 1.32, 3.58, .58, "FFFFFF")
+                self.box(slide, cx, 1.32, .05, .58, "accent")
+                self.text(slide, f"0{index + 1}", cx + .14, 1.39, .30, .18, 7.5, "accent", True)
+                self.text(slide, label, cx + .48, 1.38, 2.95, .42, 10.5, "text", True)
+                if index < 2:
+                    self.text(slide, "→", cx + 3.60, 1.47, .42, .22, 12, "accent", True)
+            self.box(slide, .65, 2.08, 11.95, .008, "D8C6B4")
+            self.text(slide, "状态与异常反馈，更新长程计划", 4.55, 2.11, 4.2, .18, 7.5, "muted")
+            self.text(slide, "任务", 4.34, 1.45, .32, .18, 7.0, "muted")
+            self.text(slide, "证据", 8.44, 1.45, .32, .18, 7.0, "muted")
+            # Three mechanism columns with local evidence images.
+            for index, item in enumerate(page["items"]):
+                x = .60 + index * 4.10
+                self.box(slide, x, 2.42, 3.90, 2.95, "FBF6EE")
+                self.box(slide, x, 2.42, 3.90, .30, "DCE6EF")
+                self.text(slide, item["title"], x + .12, 2.48, 3.65, .20, 9.0, "text", True)
+                if item.get("image"):
+                    self.artwork(slide, item["image"], x + .12, 2.80, 3.66, 1.02, radius=0.02)
+                for b_index, bullet in enumerate((item.get("bullets") or [])[:3]):
+                    by = 3.92 + b_index * .37
+                    self.box(slide, x + .12, by + .07, .07, .07, "accent")
+                    self.text(slide, bullet, x + .28, by, 3.52, .28, 8.0, "text")
+            # Four validation gates.
+            for index, step in enumerate(page["steps"]):
+                x = .60 + index * 3.02
+                self.box(slide, x, 5.62, 2.80, .56, "FFFFFF")
+                self.box(slide, x, 5.62, .045, .56, "accent")
+                self.text(slide, f"0{index + 1}", x + .12, 5.68, .28, .16, 7.0, "accent", True)
+                self.text(slide, step, x + .42, 5.66, 2.26, .24, 9.0, "text", True)
+                if index < 3:
+                    self.text(slide, "→", x + 2.82, 5.74, .20, .18, 8, "accent", True)
+            self.text(slide, "共同验证", .62, 5.36, 1.1, .18, 8.5, "accent", True)
+            if page.get("source"):
+                self.text(slide, page["source"], .62, 6.42, 11.95, .18, 7.2, "muted")
         elif layout == "light_cover":
             self.box(slide, 0, 0, 13.333, 7.5, "bg")
             self.artwork(slide, page["image"], 7.15, .55, 5.55, 6.55, radius=0.0,
@@ -2332,7 +2380,7 @@ class DeckBuilder:
                                                  "image_annotated", "ingredient_board",
                                                  "ingredient_split", "image_panel",
                                                  "image_band", "image_mosaic", "briefing", "matrix",
-                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars", "glass_canvas", "flow_chart"}:
+                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars", "glass_canvas", "flow_chart", "route_map"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
