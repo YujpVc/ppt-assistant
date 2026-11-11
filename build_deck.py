@@ -1376,8 +1376,14 @@ class DeckBuilder:
             self.text(slide, "03", 8.20, 5.54, .55, .28, 13, "FFFFFF", True)
             self.text(slide, items[2]["title"], 8.72, 5.56, 3.7, .26, 12, "FFFFFF", True)
             self.text(slide, items[2]["body"], 8.72, 5.80, 3.7, .22, 8.5, "DCE8F6")
+            if page.get("strip"):
+                self.box(slide, .65, 6.66, 11.9, .010, "D8C6B4")
+                labels = page["strip"][:3]
+                for index, label in enumerate(labels):
+                    self.text(slide, label, .65 + index * 4.05, 6.72, 3.7, .18,
+                              8.0, "muted")
             if page.get("source"):
-                self.text(slide, page["source"], .65, 6.86, 11.9, .24, 8.5, "muted")
+                self.text(slide, page["source"], .65, 6.92, 11.9, .18, 8.0, "muted")
         elif layout == "image_band":
             items = page["items"]
             self.artwork(slide, page["image"], 0, 0, 13.333, 4.55, radius=0.0,
@@ -1720,64 +1726,86 @@ class DeckBuilder:
             self.chart_page(slide, page, top=top, height=6.6 - top)
         elif layout == "briefing":
             items = page["items"]
-            self.box(slide, 0, 0, 13.333, 1.10, "A62B1F")
+            accent = self.colors["accent"]
+            ink = self.colors["text"]
+            gold = self.colors.get("gold", self._blend(accent, "FFFFFF", .35))
+            self.box(slide, 0, 0, 13.333, 1.10, accent)
             self.text(slide, str(page.get("kicker", "工作简报 / BRIEFING")).upper(),
-                      .70, .25, 7.0, .24, 9, "E8C87A", True)
+                      .70, .25, 7.0, .24, 9, gold, True)
             self.text(slide, page["title"], .70, .48, 11.9, .55,
                       page.get("title_size", 27), "FFFFFF", True, font=self.head_font)
-            self.box(slide, .70, 1.28, 12.0, .018, "C9A227")
+            self.box(slide, .70, 1.28, 12.0, .018, gold)
             for index, item in enumerate(items):
                 y = 1.55 + index * 1.52
                 self.box(slide, .70, y, 7.25, 1.28, "FFFFFF")
-                self.box(slide, .70, y, .07, 1.28, "A62B1F")
+                self.box(slide, .70, y, .07, 1.28, accent)
                 self.text(slide, f"{index + 1:02d}", .95, y + .12, .55, .30,
-                          15, "A62B1F", True)
+                          15, accent, True)
                 self.text(slide, item["title"], 1.55, y + .10, 3.9, .32,
                           15, "text", True)
                 self.text(slide, item["body"], 1.55, y + .44, 4.2, .62,
                           11.5, "muted")
                 if item.get("value"):
                     self.text(slide, str(item["value"]), 5.95, y + .14, 1.6, .42,
-                              22, "A62B1F", True, font=self.head_font)
+                              22, accent, True, font=self.head_font)
                     if item.get("label"):
                         self.text(slide, str(item["label"]), 5.95, y + .55, 1.7, .24,
                                   8, "muted")
-            self.box(slide, 8.25, 1.55, 4.35, 4.85, "14243A")
+            self.box(slide, 8.25, 1.55, 4.35, 4.85, ink)
             self.text(slide, page.get("rail_title", "关键坐标"), 8.55, 1.80, 3.7, .26,
-                      9, "C9A227", True)
+                      9, gold, True)
             stats = page["stats"]
             for index, stat in enumerate(stats):
                 sy = 2.25 + index * 1.15
                 self.text(slide, str(stat.get("value", "")), 8.55, sy, 3.5, .48,
-                          24, "C9A227", True, font=self.head_font)
+                          24, gold, True, font=self.head_font)
                 self.text(slide, str(stat.get("label", "")), 8.55, sy + .48, 3.5, .25,
                           9.5, "E8D8C4")
+                if isinstance(stat.get("share"), (int, float)):
+                    ratio = min(1.0, max(0.0, float(stat["share"])))
+                    self.box(slide, 8.55, sy + .78, 3.5, .035, "3A4655")
+                    self.box(slide, 8.55, sy + .78, max(.2, 3.5 * ratio), .035, gold)
                 if index < 2:
                     self.box(slide, 8.55, sy + .84, 3.5, .008, "3A4655")
             if page.get("quote"):
-                self.text(slide, page["quote"], 8.55, 5.45, 3.6, .70, 10.5, "E8D8C4")
+                self.text(slide, page["quote"], 8.55, 5.35, 3.6, .70, 10.5, "E8D8C4")
+            if page.get("chips"):
+                for index, chip in enumerate(page["chips"][:3]):
+                    cx = .70 + index * 2.30
+                    self.box(slide, cx, 6.03, 2.18, .32, "FFFFFF")
+                    self.box(slide, cx, 6.03, .05, .32, accent)
+                    self.text(slide, chip, cx + .14, 6.10, 1.95, .18, 8.0, "text")
             if page.get("bottom"):
-                self.box(slide, .70, 6.55, 11.90, .48, "A62B1F")
+                self.box(slide, .70, 6.55, 11.90, .48, ink)
                 self.text(slide, page["bottom"], .92, 6.65, 11.45, .26, 10.5, "FFFFFF")
         elif layout == "matrix":
             items = page["items"]
+            accent = self.colors["accent"]
+            ink = self.colors["text"]
+            gold = self.colors.get("gold", self._blend(accent, "FFFFFF", .35))
             positions = ((.70, 2.10), (6.80, 2.10), (.70, 4.35), (6.80, 4.35))
             for index, item in enumerate(items):
                 x, y = positions[index]
                 self.box(slide, x, y, 5.85, 1.95, "FFFFFF")
-                self.box(slide, x, y, 5.85, .06, "A62B1F")
+                self.box(slide, x, y, 5.85, .06, accent)
                 self.text(slide, f"{index + 1:02d}", x + .22, y + .18, .55, .28,
-                          14, "A62B1F", True)
+                          14, accent, True)
+                if item.get("value"):
+                    self.text(slide, str(item["value"]), x + 4.35, y + .15, 1.3, .24,
+                              9.5, accent, True, align=PP_ALIGN.RIGHT)
                 self.text(slide, item["title"], x + .22, y + .52, 5.3, .32,
                           16, "text", True)
                 self.text(slide, item["body"], x + .22, y + .90, 5.35, .58,
                           11.5, "muted")
+                if item.get("note"):
+                    self.text(slide, item["note"], x + .22, y + 1.18, 5.35, .22,
+                              8.5, "muted")
                 if item.get("tag"):
-                    self.box(slide, x + .22, y + 1.56, .48, .026, "C9A227")
-                    self.text(slide, item["tag"], x + .82, y + 1.47, 4.8, .24,
-                              9.5, "A62B1F", True)
+                    self.box(slide, x + .22, y + 1.56, .48, .026, gold)
+                    self.text(slide, item["tag"], x + .82, y + 1.58, 4.8, .22,
+                              9.0, accent, True)
             if page.get("bottom"):
-                self.box(slide, .70, 6.55, 11.90, .48, "14243A")
+                self.box(slide, .70, 6.55, 11.90, .48, ink)
                 self.text(slide, page["bottom"], .92, 6.65, 11.45, .26, 10.5, "FFFFFF")
         elif layout == "academic_table":
             headers, rows = page["headers"], page["rows"]
