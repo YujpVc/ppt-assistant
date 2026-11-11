@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "compare_grid", "comparison", "table", "academic_table", "chart",
+LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
            "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -289,6 +289,22 @@ def validate(spec: dict, base: Path) -> None:
                     raise ValueError(f"slide {index}: image not found: {path}")
                 with Image.open(path) as picture:
                     picture.verify()
+        if layout == "evidence_grid":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 4:
+                raise ValueError(f"slide {index}: evidence_grid requires exactly 4 items")
+            if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
+                   for item in items):
+                raise ValueError(f"slide {index}: every evidence_grid item requires title and body")
+            assets = [slide]
+        if layout == "diagonal_compare":
+            images = slide.get("images")
+            if not isinstance(images, list) or len(images) != 2:
+                raise ValueError(f"slide {index}: diagonal_compare requires exactly 2 images")
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: diagonal_compare requires exactly 3 items")
+            assets = images
         if layout == "light_cover":
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: light_cover requires an image")
@@ -1533,10 +1549,13 @@ class DeckBuilder:
                     self.text(slide, item["title"], x, y + height - .48, 5.9, .45, 18, "accent", True)
         elif layout == "heat_bars":
             items = page["items"]
-            fire_colors = {"大火": "8C2F22", "中火": "B4602A",
-                           "小火": "E2A35E", "微火": "A9744F"}
+            fire_colors = page.get("fire_colors", {"大火": "8C2F22", "中火": "B4602A",
+                                                   "小火": "E2A35E", "微火": "A9744F"})
             levels = {"大火": 4, "中火": 3, "小火": 2, "微火": 1}
             total = float(page.get("total_minutes", 90))
+            tick = int(page.get("tick", 15))
+            unit = page.get("unit", "分钟")
+            tick_base = float(page.get("tick_base", 0))
             x0, x1 = 5.45, 11.95
             span = x1 - x0
             top = 2.52
@@ -1544,12 +1563,17 @@ class DeckBuilder:
             for i in range(len(items)):
                 if i % 2 == 0:
                     self.box(slide, .55, top + .04 + i * row_h, 11.9, row_h - .02, "F6EEE4")
-            for tick in range(0, int(total), 15):
-                x = x0 + span * tick / total
+            tick_values = list(range(0, int(total), tick))
+            if not tick_values or tick_values[-1] != int(total):
+                tick_values.append(int(total))
+            for tick_value in tick_values:
+                x = x0 + span * tick_value / total
                 self.box(slide, x, top - .10, .012, 4.10, "E4D2C0")
-                self.text(slide, str(tick), x - .18, top - .38, .36, .20, 8, "muted",
+                tick_label = str(int(round(tick_base + tick_value)))
+                self.text(slide, tick_label, x - .30, top - .38, .60, .20, 8, "muted",
                           align=PP_ALIGN.CENTER)
-            self.text(slide, "分钟", x1 + .02, top - .38, .5, .20, 8, "muted")
+            if unit:
+                self.text(slide, unit, x1 + .02, top - .38, .5, .20, 8, "muted")
             starts = []
             cursor = 0.0
             for item in items:
@@ -1563,7 +1587,7 @@ class DeckBuilder:
                           .55, .30, 14, "accent", True)
                 self.text(slide, item["title"], 1.34, y - .04, 2.6, .40, 20, "text", True)
                 duration = item.get("time", f"{int(float(item['minutes']))} min")
-                self.text(slide, f"{fire} · {duration}", 1.36, y + .36, 2.3, .22, 10, "muted")
+                self.text(slide, f"{item.get('tag', fire)} · {duration}", 1.36, y + .36, 2.3, .22, 10, "muted")
                 self.box(slide, .62, y + .04, .035, .54, fire_colors[fire])
                 minutes = float(item["minutes"])
                 bar_w = max(.08, span * minutes / total)
@@ -1756,6 +1780,77 @@ class DeckBuilder:
         elif layout in {"chart", "chart_dashboard"}:
             top = 2.05 if page.get("subtitle") else 1.65
             self.chart_page(slide, page, top=top, height=6.6 - top)
+        elif layout == "evidence_grid":
+            items = page["items"]
+            self.box(slide, .60, 1.95, 5.45, 3.78, "FFFFFF")
+            self.artwork(slide, page["image"], .72, 2.07, 5.21, 3.54, radius=0.02)
+            for index, item in enumerate(items):
+                px = .72 + float(item.get("x", .25 + index * .15)) * 5.21
+                py = 2.07 + float(item.get("y", .25 + index * .15)) * 3.54
+                self.box(slide, px - .09, py - .09, .18, .18, "FFFFFF")
+                self.box(slide, px - .065, py - .065, .13, .13, "accent")
+                self.text(slide, f"{index + 1:02d}", px - .06, py - .055, .13, .13,
+                          6, "FFFFFF", True, align=PP_ALIGN.CENTER)
+                col = index % 2
+                row = index // 2
+                x = 6.28 + col * 3.12
+                y = 1.98 + row * 1.62
+                self.box(slide, x, y, 2.98, 1.46, "FFFFFF")
+                self.box(slide, x, y, .05, 1.46, "accent")
+                self.text(slide, f"{index + 1:02d}", x + .16, y + .10, .35, .20,
+                          8, "accent", True)
+                self.text(slide, item["title"], x + .52, y + .08, 2.3, .28,
+                          13, "text", True)
+                self.text(slide, item["body"], x + .16, y + .40, 2.66, .62,
+                          9.2, "muted")
+                if item.get("value"):
+                    self.text(slide, str(item["value"]), x + .16, y + 1.02,
+                              1.25, .30, 16, "accent", True, font=self.head_font)
+                    if item.get("label"):
+                        self.text(slide, str(item["label"]), x + 1.42, y + 1.10,
+                                  1.35, .18, 7.2, "muted")
+            if page.get("chips"):
+                for index, chip in enumerate(page["chips"][:3]):
+                    cx = .60 + index * 4.05
+                    self.box(slide, cx, 5.94, 3.82, .42, "FFFFFF")
+                    self.box(slide, cx, 5.94, .05, .42, "accent")
+                    self.text(slide, chip, cx + .16, 6.04, 3.5, .22, 8.5, "text")
+            if page.get("source"):
+                self.text(slide, page["source"], .65, 6.78, 11.9, .18, 8.0, "muted")
+        elif layout == "diagonal_compare":
+            left, right = page["images"]
+            background = media.diagonal_split(
+                self._load(left), self._load(right), (1920, 360),
+                split=page.get("split", .56), lean=page.get("lean", .18),
+                seam=page.get("seam", self.colors["accent"]), seam_width=6)
+            background = media.apply_scrim(background, color="F3F5F9",
+                                           direction="bottom", start=.62, end=1.0,
+                                           gamma=1.2, opacity=.55)
+            self._add_picture(slide, background, 0, 2.05, 13.333, 2.45, jpeg=True)
+            self.box(slide, .60, 2.05, 2.9, .34, "FFFFFF")
+            self.text(slide, page.get("left_label", "01"), .74, 2.10, .45, .22,
+                      8, "accent", True)
+            self.text(slide, page.get("left_title", ""), 1.18, 2.10, 2.2, .22,
+                      9, "text", True)
+            self.box(slide, 9.85, 2.05, 2.9, .34, "FFFFFF")
+            self.text(slide, page.get("right_label", "02"), 9.99, 2.10, .45, .22,
+                      8, "accent", True)
+            self.text(slide, page.get("right_title", ""), 10.43, 2.10, 2.2, .22,
+                      9, "text", True)
+            items = page["items"]
+            for index, item in enumerate(items):
+                x = .60 + index * 4.10
+                self.text(slide, f"{index + 1:02d}", x, 4.86, .45, .22, 9, "accent", True)
+                self.text(slide, item["title"], x + .48, 4.86, 3.3, .28, 14, "text", True)
+                for row_index, row in enumerate(item["rows"][:4]):
+                    ry = 5.22 + row_index * .38
+                    self.box(slide, x, ry, 3.82, .008, "D8C6B4")
+                    self.text(slide, row.get("label", ""), x, ry + .05, .95, .18,
+                              7.8, "accent", True)
+                    self.text(slide, row.get("value", ""), x + 1.0, ry + .02, 2.75, .24,
+                              9.5, "text")
+            if page.get("source"):
+                self.text(slide, page["source"], .65, 6.88, 11.9, .16, 7.8, "muted")
         elif layout == "light_cover":
             self.box(slide, 0, 0, 13.333, 7.5, "bg")
             self.artwork(slide, page["image"], 7.15, .55, 5.55, 6.55, radius=0.0,
@@ -2045,7 +2140,7 @@ class DeckBuilder:
                                                  "image_annotated", "ingredient_board",
                                                  "ingredient_split", "image_panel",
                                                  "image_band", "image_mosaic", "briefing", "matrix",
-                                                 "figure_annotated", "compare_grid"}:
+                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
