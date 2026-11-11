@@ -32,7 +32,7 @@ from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
 LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "chart",
-           "image_split", "image_grid", "image_triptych", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
+           "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
@@ -206,6 +206,14 @@ def validate(spec: dict, base: Path) -> None:
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: {layout} requires an image")
             assets = [slide]
+        if layout == "image_mosaic":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: image_mosaic requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("image") or not item.get("title")
+                   for item in items):
+                raise ValueError(f"slide {index}: every image_mosaic item requires image and title")
+            assets = items
         if layout == "image_band":
             if not slide.get("image"):
                 raise ValueError(f"slide {index}: image_band requires an image")
@@ -1325,6 +1333,28 @@ class DeckBuilder:
                 else:
                     self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
                               13, "muted")
+        elif layout == "image_mosaic":
+            items = page["items"]
+            scrim = {"direction": "bottom", "color": "07101C",
+                     "start": .42, "end": 1.0, "opacity": .94}
+            self.artwork(slide, items[0]["image"], .60, 1.98, 7.15, 4.65,
+                         radius=0.0, scrim=scrim)
+            self.artwork(slide, items[1]["image"], 8.00, 1.98, 4.70, 2.20,
+                         radius=0.0, scrim=scrim)
+            self.artwork(slide, items[2]["image"], 8.00, 4.35, 4.70, 2.20,
+                         radius=0.0, scrim=scrim)
+            self.box(slide, 7.86, 1.98, .012, 4.57, "B04A2A")
+            self.text(slide, "01", .80, 5.58, .7, .44, 24, "FFFFFF", True)
+            self.text(slide, items[0]["title"], 1.52, 5.70, 5.8, .34, 18, "FFFFFF", True)
+            self.text(slide, items[0]["body"], 1.52, 6.06, 5.8, .26, 10.5, "DCE8F6")
+            self.text(slide, "02", 8.20, 3.18, .55, .28, 13, "FFFFFF", True)
+            self.text(slide, items[1]["title"], 8.72, 3.20, 3.7, .26, 12, "FFFFFF", True)
+            self.text(slide, items[1]["body"], 8.72, 3.44, 3.7, .22, 8.5, "DCE8F6")
+            self.text(slide, "03", 8.20, 5.54, .55, .28, 13, "FFFFFF", True)
+            self.text(slide, items[2]["title"], 8.72, 5.56, 3.7, .26, 12, "FFFFFF", True)
+            self.text(slide, items[2]["body"], 8.72, 5.80, 3.7, .22, 8.5, "DCE8F6")
+            if page.get("source"):
+                self.text(slide, page["source"], .65, 6.86, 11.9, .24, 8.5, "muted")
         elif layout == "image_band":
             items = page["items"]
             self.artwork(slide, page["image"], 0, 0, 13.333, 4.55, radius=0.0,
@@ -1666,31 +1696,76 @@ class DeckBuilder:
             top = 2.05 if page.get("subtitle") else 1.65
             self.chart_page(slide, page, top=top, height=6.6 - top)
         elif layout == "table":
-            headers, rows = page["headers"], page["rows"]
-            table = slide.shapes.add_table(len(rows) + 1, len(headers), Inches(.6), Inches(2.1),
-                                           Inches(12.1), Inches(4.4)).table
-            weights = [max([len(str(headers[index]))] +
-                           [len(str(row[index])) for row in rows])
-                       for index in range(len(headers))]
-            total = sum(weights) or 1
-            for index, weight in enumerate(weights):
-                table.columns[index].width = Inches(12.1 * weight / total)
+            data_headers, data_rows = page["headers"], page["rows"]
+            headers = ["№"] + list(data_headers)
+            rows = [[f"{index:02d}"] + list(row) for index, row in enumerate(data_rows, 1)]
+            self.box(slide, .60, 2.02, 12.1, .045, "accent")
+            table = slide.shapes.add_table(len(rows) + 1, len(headers), Inches(.6),
+                                           Inches(2.12), Inches(12.1), Inches(4.35)).table
+            table.first_row = False
+            table.horz_banding = False
+            table.vert_banding = False
+            data_weights = [max([len(str(data_headers[index]))] +
+                                [len(str(row[index])) for row in data_rows])
+                            for index in range(len(data_headers))]
+            total = sum(data_weights) or 1
+            table.columns[0].width = Inches(.55)
+            for index, weight in enumerate(data_weights, start=1):
+                table.columns[index].width = Inches(11.55 * weight / total)
+            table.rows[0].height = Inches(.55)
+            for row_index in range(1, len(table.rows)):
+                table.rows[row_index].height = Inches(.95)
+
+            def clear_borders(cell):
+                tc_pr = cell._tc.get_or_add_tcPr()
+                for tag in ("a:lnL", "a:lnR", "a:lnT", "a:lnB"):
+                    ln = tc_pr.find(qn(tag))
+                    if ln is None:
+                        ln = tc_pr.makeelement(qn(tag), {})
+                        tc_pr.append(ln)
+                    for child in list(ln):
+                        ln.remove(child)
+                    ln.set("w", "0")
+                    ln.append(tc_pr.makeelement(qn("a:noFill"), {}))
+
             for row_index, row in enumerate([headers] + rows):
                 for column_index, value in enumerate(row):
                     cell = table.cell(row_index, column_index)
                     cell.fill.solid()
-                    cell.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent" if row_index == 0 else "panel"])
+                    if column_index == 0:
+                        cell.fill.fore_color.rgb = RGBColor.from_string(
+                            "1C2B3A" if row_index == 0 else self.colors["accent"])
+                    elif row_index == 0:
+                        cell.fill.fore_color.rgb = RGBColor.from_string("1C2B3A")
+                    else:
+                        cell.fill.fore_color.rgb = RGBColor.from_string(
+                            "F2F6FA" if row_index % 2 else "FFFFFF")
+                    cell.margin_left = Inches(.10)
+                    cell.margin_right = Inches(.10)
+                    cell.margin_top = Inches(.04)
+                    cell.margin_bottom = Inches(.04)
+                    cell.vertical_anchor = MSO_ANCHOR.MIDDLE
                     cell.text = str(value)
                     for paragraph in cell.text_frame.paragraphs:
+                        paragraph.alignment = (PP_ALIGN.CENTER if column_index == 0
+                                               or row_index == 0 or column_index > 1
+                                               else PP_ALIGN.LEFT)
                         paragraph.font.name = self.font
-                        paragraph.font.size = Pt(18)
-                        paragraph.font.bold = row_index == 0
-                        paragraph.font.color.rgb = RGBColor.from_string(self.colors["bg" if row_index == 0 else "text"])
+                        paragraph.font.size = Pt(11.5 if row_index == 0 else
+                                                 (13 if column_index == 0 else 12.5))
+                        paragraph.font.bold = (row_index == 0 or column_index == 0)
+                        paragraph.font.color.rgb = RGBColor.from_string(
+                            "FFFFFF" if row_index == 0 or column_index == 0
+                            else self.colors["text"])
                         for run in paragraph.runs:
-                            run._r.get_or_add_rPr().append(run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
+                            run._r.get_or_add_rPr().append(
+                                run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
+                    clear_borders(cell)
+            self.box(slide, .60, 6.44, 12.1, .010, "D8C6B4")
         if page.get("source") and layout not in {"glass_overlay", "kpi_showcase",
                                                  "image_annotated", "ingredient_board",
-                                                 "ingredient_split", "image_panel"}:
+                                                 "ingredient_split", "image_panel",
+                                                 "image_band", "image_mosaic"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):

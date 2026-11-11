@@ -161,9 +161,10 @@
          "font": "Noto Sans CJK SC", "titleFont": "Noto Serif CJK SC"}
 ```
 
-版式池：`image_hero` `architecture` `image_band` `image_panel_strip` `kpi_showcase` `sequence` `pillars` `table` `closing`
+版式池：`image_hero` `architecture` `image_band` `image_mosaic` `image_panel_strip` `kpi_showcase` `sequence` `pillars` `table` `closing`
 骨架：封面 → 总体路线（三段共用一套状态）→ 规程解析/规划 → 执行证据/记忆恢复 → 创新点与验证指标
-避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据。
+避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据、三张等宽图片当路线对比。
+- **版式节奏**：5 页至少 4 种结构；三层堆叠用 architecture，满幅图文用 image_band，三路线对比用 image_mosaic，瓶颈矩阵才用 styled table。
 - **表格纪律**：`table` 只给真正的二维数值矩阵；验收层级/挑战/机制用 `pillars`/`sequence`/`image_panel`。
 
 ---
