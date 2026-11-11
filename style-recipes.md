@@ -151,7 +151,7 @@
 - **配色逻辑**：象牙纸底 60% + 墨色 30% + 单一深青强调 10%；不要 corporate 蓝（如 #2F5597）；红只标风险/待确认
 - **字体逻辑**：标题思源宋体 30–36，正文思源黑体 18–22；不要用 12pt 正文撑信息量
 - **图片行为**：图片只做证据，不做大背景；封面用 `light_cover` 拱窗，机制页用 `figure_annotated`（一张图 + 3 个标注 + 右栏证据），对比页用小图 + `compare_grid`；不要满幅深色图，不要把图片算成信息密度
-- **空间节奏**：不设固定页序。先写 5 个“页面任务”（定位 / 为什么难 / 怎么做 / 断了怎么接 / 怎么证明），再按任务选版式；相邻页不得同一种结构；5 页至少 4 种结构。不要目录、章节编号和论文小节号。
+- **空间节奏**：不设固定页序。先写 5 个“页面任务”（定位 / 为什么难 / 怎么做 / 断了怎么接 / 怎么证明），再按任务选版式；不设结构配额：5 页至少 3 种结构即可；同一结构可复用，只要证据关系不同。不要目录、章节编号和论文小节号。
 - **反模板检查**：把标题、图片、数字拿掉，只看版式轮廓；如果这个轮廓换到另一个课题也完全成立，它就是模板，不是这页的判断，必须换骨。
 - **图法**：先定一条主轴，再按同色系实心→浅色→线框分层次；不要每个模块都填色，不要圆角卡片墙。
 - **文字与图的配比**：学术页不是图墙；每页用一张图承担证据/场景，文字用实心面板承载，保证 14pt 以上可读。
@@ -163,7 +163,7 @@
 ```
 
 版式池：`light_cover` `briefing` `figure_annotated` `compare_grid` `academic_table` `architecture` `kpi_showcase` `sequence` `pillars` `glass_canvas` `evidence_grid` `route_map` `image_panel_strip` `closing`
-骨架：只锁定页面任务，不锁定版式：定位 → 为什么难 → 怎么做成一条链 → 断了怎么接 → 怎么证明；每页的版式由该页证据形态决定，不允许默认套 `architecture → sequence → academic_table` 的直线。
+骨架：只锁定页面任务，不锁定版式：定位 → 为什么难 → 怎么做成一条链 → 断了怎么接 → 怎么证明；每页的版式由该页证据形态决定，不允许默认套 `architecture → sequence → academic_table` 的直线。版式候选池：封面 `light_cover/image_hero/image_statement`；问题 `evidence_grid/compare_grid/image_panel_strip`；机制 `architecture/route_map/glass_canvas/figure_annotated/pillars`；恢复 `sequence/image_panel/briefing/heat_bars`；验证 `academic_table/matrix/pillars/kpi_showcase`。
 避免：整张 4800px 论文图塞进 6–7in、`3.1.4.1` 这类论文编号、2×4 长句表、12pt 正文、三张等权卡片却没有证据、三张等宽图片当路线对比。
 - **学术表格**：用三线表（上下 1.5pt、表头下 0.75pt、无竖线）；首列左对齐、其余居中，最后一列“下一步”浅底强调；表题、来源、单位齐全。不要深色表头 + 行号色块的商业表。
 - **版式节奏**：5 页至少 4 种结构；三层堆叠用 architecture，满幅图文用 image_band，三路线对比用 image_mosaic，瓶颈矩阵才用 styled table。
