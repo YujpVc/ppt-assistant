@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "glass_canvas", "flow_chart", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
+LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "figure_annotated", "glass_canvas", "flow_chart", "diagram_page", "evidence_grid", "diagonal_compare", "compare_grid", "comparison", "table", "academic_table", "chart",
            "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -319,6 +319,10 @@ def validate(spec: dict, base: Path) -> None:
             steps = slide.get("steps")
             if not isinstance(steps, list) or len(steps) != 4:
                 raise ValueError(f"slide {index}: flow_chart requires exactly 4 validation steps")
+            assets = [slide]
+        if layout == "diagram_page":
+            if not slide.get("image"):
+                raise ValueError(f"slide {index}: diagram_page requires an image")
             assets = [slide]
         if layout == "light_cover":
             if not slide.get("image"):
@@ -2020,6 +2024,25 @@ class DeckBuilder:
                     self.text(slide, page["image_caption"], 9.30, 5.98, 3.35, .18, 7.5, "muted")
             if page.get("source"):
                 self.text(slide, page["source"], .65, 6.70, 11.9, .18, 8.0, "muted")
+        elif layout == "diagram_page":
+            self.box(slide, 0, 0, 13.333, 7.5, "bg")
+            self.artwork(slide, page["image"], .0, .22, 9.25, 7.02, radius=0.0)
+            self.box(slide, 9.18, 0, 4.153, 7.5, "FBF6EE")
+            self.box(slide, 9.18, 0, .05, 7.5, "accent")
+            self.text(slide, str(page.get("kicker", "技术路线 / ROUTE")).upper(), 9.50, .62, 3.4, .22, 9, "accent", True)
+            self.text(slide, page["title"], 9.50, .98, 3.35, 1.15, page.get("title_size", 22), "text", True, font=self.head_font)
+            if page.get("body"):
+                self.text(slide, page["body"], 9.50, 2.28, 3.35, .95, 10.5, "muted")
+            for index, point in enumerate((page.get("points") or [])[:3]):
+                py = 3.35 + index * .82
+                self.text(slide, f"0{index + 1}", 9.50, py, .30, .20, 8, "accent", True)
+                self.text(slide, point, 9.84, py - .02, 3.0, .48, 9.5, "text")
+            for index, step in enumerate((page.get("steps") or [])[:4]):
+                sy = 5.78 + index * .24
+                self.text(slide, "›", 9.50, sy - .03, .18, .18, 10, "accent", True)
+                self.text(slide, step, 9.70, sy - .03, 3.0, .18, 8.0, "muted")
+            if page.get("source"):
+                self.text(slide, page["source"], 9.50, 6.95, 3.35, .20, 7.2, "muted")
         elif layout == "light_cover":
             self.box(slide, 0, 0, 13.333, 7.5, "bg")
             self.artwork(slide, page["image"], 7.15, .55, 5.55, 6.55, radius=0.0,
