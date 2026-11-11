@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "chart",
+LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "academic_table", "chart",
            "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -289,6 +289,12 @@ def validate(spec: dict, base: Path) -> None:
                     raise ValueError(f"slide {index}: image not found: {path}")
                 with Image.open(path) as picture:
                     picture.verify()
+        if layout == "academic_table":
+            headers, rows = slide.get("headers"), slide.get("rows")
+            if (not isinstance(headers, list) or not 2 <= len(headers) <= 5
+                    or not isinstance(rows, list) or not 1 <= len(rows) <= 6
+                    or any(not isinstance(row, list) or len(row) != len(headers) for row in rows)):
+                raise ValueError(f"slide {index}: academic_table requires 2–5 columns and 1–6 complete rows")
         if layout == "table":
             headers, rows = slide.get("headers"), slide.get("rows")
             if (not isinstance(headers, list) or not 2 <= len(headers) <= 5
@@ -1695,6 +1701,67 @@ class DeckBuilder:
         elif layout in {"chart", "chart_dashboard"}:
             top = 2.05 if page.get("subtitle") else 1.65
             self.chart_page(slide, page, top=top, height=6.6 - top)
+        elif layout == "academic_table":
+            headers, rows = page["headers"], page["rows"]
+            if page.get("caption"):
+                self.text(slide, page["caption"], .60, 1.92, 12.1, .24, 9, "muted", True)
+            self.box(slide, .60, 2.12, 12.1, .022, "1C2B3A")
+            table = slide.shapes.add_table(len(rows) + 1, len(headers), Inches(.6),
+                                           Inches(2.20), Inches(12.1), Inches(4.35)).table
+            table.first_row = False
+            table.horz_banding = False
+            table.vert_banding = False
+            weights = [max([len(str(headers[index]))] +
+                           [len(str(row[index])) for row in rows])
+                       for index in range(len(headers))]
+            total = sum(weights) or 1
+            for index, weight in enumerate(weights):
+                table.columns[index].width = Inches(12.1 * weight / total)
+            table.rows[0].height = Inches(.55)
+            for row_index in range(1, len(table.rows)):
+                table.rows[row_index].height = Inches(.95)
+
+            def clear_academic_borders(cell):
+                tc_pr = cell._tc.get_or_add_tcPr()
+                for tag in ("a:lnL", "a:lnR", "a:lnT", "a:lnB"):
+                    ln = tc_pr.find(qn(tag))
+                    if ln is None:
+                        ln = tc_pr.makeelement(qn(tag), {})
+                        tc_pr.append(ln)
+                    for child in list(ln):
+                        ln.remove(child)
+                    ln.set("w", "0")
+                    ln.append(tc_pr.makeelement(qn("a:noFill"), {}))
+
+            for row_index, row in enumerate([headers] + rows):
+                for column_index, value in enumerate(row):
+                    cell = table.cell(row_index, column_index)
+                    cell.fill.solid()
+                    if column_index == len(headers) - 1:
+                        cell.fill.fore_color.rgb = RGBColor.from_string("F1E7DB")
+                    else:
+                        cell.fill.fore_color.rgb = RGBColor.from_string("FFFFFF")
+                    cell.margin_left = Inches(.10)
+                    cell.margin_right = Inches(.10)
+                    cell.margin_top = Inches(.04)
+                    cell.margin_bottom = Inches(.04)
+                    cell.vertical_anchor = MSO_ANCHOR.MIDDLE
+                    cell.text = str(value)
+                    for paragraph in cell.text_frame.paragraphs:
+                        paragraph.alignment = (PP_ALIGN.LEFT if column_index == 0
+                                               else PP_ALIGN.CENTER)
+                        paragraph.font.name = self.font
+                        paragraph.font.size = Pt(12.0 if row_index == 0 else 13.0)
+                        paragraph.font.bold = row_index == 0 or column_index == 0
+                        paragraph.font.color.rgb = RGBColor.from_string(
+                            "176C88" if row_index == 0 else self.colors["text"])
+                        for run in paragraph.runs:
+                            run._r.get_or_add_rPr().append(
+                                run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
+                    clear_academic_borders(cell)
+            # Three-line rules: header rule + bottom rule.
+            self.box(slide, .60, 2.75, 12.1, .010, "1C2B3A")
+            self.box(slide, .60, 6.55, 12.1, .022, "1C2B3A")
         elif layout == "table":
             data_headers, data_rows = page["headers"], page["rows"]
             headers = ["№"] + list(data_headers)
