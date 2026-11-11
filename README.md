@@ -20,7 +20,15 @@ DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 
 
 使用 Python 3.10+。在引擎目录运行 `bash run_py.sh --help` 可确认解释器；`run_py.sh` 会挑选真正装有 python-pptx/Pillow 的 Python（DSH 非登录 shell 里的 `python3` 可能只是运行时）。依赖安装：`python3 -m pip install -r requirements.txt`，不会在插件安装时自动执行。`run_pptfast.sh` 可选使用已安装的 `@liustack/pptfast@0.20.0`，缺少时使用内置 `build_deck.py`；本包不自动下载 pptfast。
 
-生图客户端 `gen_image.py` 只用标准库，不需要额外依赖。它的配置按顺序从 `--config`、`$PPT_IMAGE_CONFIG`、引擎目录 `image-config.json`、`~/.config/ppt-assistant/image.json` 读取，格式为 `{"api_base": "https://uuapi.io/v1", "api_key": "..."}`；也接受 `UUAPI_API_KEY` / `UUAPI_BASE_URL`。密钥不写入本仓库、不写进成图、不打印。
+生图客户端 `gen_image.py` 只用标准库，不需要额外依赖。**本包不自带生图 API Key**；配置只从 `--config`、`$PPT_IMAGE_CONFIG`、`~/.config/ppt-assistant/image.json` 或 `UUAPI_API_KEY` / `UUAPI_BASE_URL` 读取。首次使用先自己填：
+
+```bash
+mkdir -p ~/.config/ppt-assistant
+cp image-config.example.json ~/.config/ppt-assistant/image.json
+# 编辑 image.json，填自己的 api_base 与 api_key
+```
+
+`image-config.example.json` 里 `api_key` 是空串；密钥不写入本仓库、不写进成图、不打印。发布前会跑 `check_release_secrets.py`，发现非空 key 或 `image-config.json` 会阻断。
 
 渲染需要 LibreOffice 和 `pdftoppm`，扫描文档 OCR 需要 Tesseract。联网取图可通过 `PEXELS_API_KEY` 设置个人密钥，视觉审查需要 `DEEPSEEK_API_KEY` 和可用的视觉模型权限。旧提示词提到的 dsh-office、mindmap 等补充插件需另行安装，本包不自动安装或宣称提供这些插件的工具。
 
