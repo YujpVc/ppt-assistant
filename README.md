@@ -73,6 +73,8 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | --- | --- | --- |
 | `architecture` | 3 层总体路线：深色主张带 + 大编号 + 细网格 + 回写环 + 验证跑道 | `items[3]{title,body}` `band` `loop` `steps` `bottom_title` |
 | `academic_table` | 学术三线表：表题 + 上下粗线 + 表头细线 + 末列浅底，无竖线 | `headers` `rows` `caption` `source` |
+| `briefing` | 体制内简报：红标题带 + 三模块 + 右侧数据栏 + 底部结论 | `title` `items[3]` `stats[3]` `quote` `bottom` |
+| `matrix` | 2×2 四象限：每格标题 + 状态 + 下一步，适合瓶颈/任务矩阵 | `items[4]{title,body,tag}` `bottom` |
 | `sequence` | 之字形主轴：3–4 步上下交替，适合机制/流程 | `items[3–4]{title,body,foot}` `bottom` |
 | `pillars` | 3–4 根深色柱头 + 纸面正文，适合验收/并列机制 | `items[3–4]{title,body,foot}` `bottom` |
 
@@ -110,7 +112,7 @@ bash run_py.sh figure_audit.py output.pptx --strict   # 有 DENSE 就 exit 2
 ## 视觉总监与风格配方
 
 - 先明确受众、要促成的判断、内容类型、场景、情绪；再写七行风格简报：三个形容词 / 一个设计张力 / 密度 / 配色逻辑 / 字体逻辑 / 图片行为 / 空间节奏。
-- 从 `<engine-root>/style-recipes.md` 选一套主配方：`consulting` `formal` `grant` `civic` `artfair` `editorial` `history`；需要时最多加一套辅助，声明主/辅。把 `meta.recipe` 记进 spec。
+- 从 `<engine-root>/style-recipes.md` 选一套主配方：`consulting` `formal` `grant` `institutional` `civic` `artfair` `editorial` `history`；需要时最多加一套辅助，声明主/辅。把 `meta.recipe` 记进 spec。
 - 配方 tokens 落进 `meta`：`theme` `accent` `colors` `font` `titleFont`。`titleFont` 可让标题单独用衬线（如 `Noto Serif CJK SC`），正文仍用 `font`。
 - 评审顺序：先 `contact_sheet.py` 出缩略图总览，看节奏/密度/重复，再抽封面、最密页、特殊媒体页、结束页全尺寸看。
 
