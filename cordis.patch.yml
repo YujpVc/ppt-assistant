@@ -197,7 +197,7 @@
 
                 IMAGE GENERATION — 用户已授权 GPT 生图（uuapi / gpt-image），不必每张先问
                 - 生成器：`bash <engine-root>/run_py.sh gen_image.py --prompt-file <p.txt> --out <workspace>/assets/hero.png --size landscape --model gpt-image-2.5-flare`
-                  - 配置：`~/.config/ppt-assistant/image.json`（api_base + api_key）。也可 `--config` 或 `$PPT_IMAGE_CONFIG`。密钥只留在配置里：不进 spec、不进成图、不进提交、不要在回复里打印。
+                  - 配置：用户自己的 `~/.config/ppt-assistant/image.json`（api_base + api_key）；本包不自带 key。首次用 `image-config.example.json` 复制后填自己的 key，或 `--config` / `$PPT_IMAGE_CONFIG`。密钥只留在用户配置里：不进 spec、不进成图、不进提交、不要在回复里打印。
                   - 尺寸只支持 1024x1024 / 1536x1024(landscape) / 1024x1536(portrait)。满幅 16:9 用 landscape 生成，再让引擎 cover 裁切。
                   - `--ref a.png --ref b.png` 走参考图编辑（最多 4 张）；`--dry-run` 先验证参数与端点。
                   - `--transparent` 出透明底 PNG（gpt-image 的 background=transparent），专供 cutout_statement 的破格主体。

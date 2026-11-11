@@ -1,6 +1,6 @@
 {
   "name": "@yujp_vc/ppt-assistant",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "PPT 助手 agent preset for DeepSeek Harness: a visual-director workflow with eight style recipes, plan-first editable decks, GPT imagery/vision QC, showcase layouts, and a verified scoped-edit ledger.",
   "license": "MIT",
   "private": false,
@@ -43,7 +43,8 @@
     "LICENSE",
     "config.json",
     "assets",
-    "example.json"
+    "example.json",
+    "image-config.example.json"
   ],
   "dsh": {
     "bundle": {
@@ -67,5 +68,8 @@
     "type": "git",
     "url": "git+https://github.com/YujpVc/ppt-assistant.git"
   },
-  "homepage": "https://github.com/YujpVc/ppt-assistant#readme"
+  "homepage": "https://github.com/YujpVc/ppt-assistant#readme",
+  "scripts": {
+    "prepublishOnly": "python3 check_release_secrets.py"
+  }
 }
