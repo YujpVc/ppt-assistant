@@ -1424,13 +1424,22 @@ class DeckBuilder:
             items = page["items"]
             scrim = {"direction": "bottom", "color": "07101C",
                      "start": .42, "end": 1.0, "opacity": .94}
-            self.artwork(slide, items[0]["image"], .60, 1.98, 7.15, 4.65,
-                         radius=0.0, scrim=scrim)
-            self.artwork(slide, items[1]["image"], 8.00, 1.98, 4.70, 2.20,
-                         radius=0.0, scrim=scrim)
-            self.artwork(slide, items[2]["image"], 8.00, 4.35, 4.70, 2.20,
-                         radius=0.0, scrim=scrim)
-            self.box(slide, 7.86, 1.98, .012, 4.57, "B04A2A")
+            if page.get("bleed"):
+                self.artwork(slide, items[0]["image"], 0, 1.52, 8.0, 5.25,
+                             radius=0.0, scrim=scrim)
+                self.artwork(slide, items[1]["image"], 8.0, 1.52, 5.333, 2.625,
+                             radius=0.0, scrim=scrim)
+                self.artwork(slide, items[2]["image"], 8.0, 4.145, 5.333, 2.625,
+                             radius=0.0, scrim=scrim)
+                self.box(slide, 7.985, 1.52, .014, 5.25, "B04A2A")
+            else:
+                self.artwork(slide, items[0]["image"], .60, 1.98, 7.15, 4.65,
+                             radius=0.0, scrim=scrim)
+                self.artwork(slide, items[1]["image"], 8.00, 1.98, 4.70, 2.20,
+                             radius=0.0, scrim=scrim)
+                self.artwork(slide, items[2]["image"], 8.00, 4.35, 4.70, 2.20,
+                             radius=0.0, scrim=scrim)
+                self.box(slide, 7.86, 1.98, .012, 4.57, "B04A2A")
             self.text(slide, "01", .80, 5.58, .7, .44, 24, "FFFFFF", True)
             self.text(slide, items[0]["title"], 1.52, 5.70, 5.8, .34, 18, "FFFFFF", True)
             self.text(slide, items[0]["body"], 1.52, 6.06, 5.8, .26, 10.5, "DCE8F6")
