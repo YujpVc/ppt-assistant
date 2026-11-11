@@ -31,7 +31,7 @@ from charts import draw_chart, resolve_chart
 from grasp_evidence import (candidate_projections, depth_colors, depth_pair,
                             gated_candidate_projections, gripper_projection)
 
-LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "comparison", "table", "academic_table", "chart",
+LAYOUTS = {"cover", "cards", "process", "architecture", "sequence", "pillars", "briefing", "matrix", "comparison", "table", "academic_table", "chart",
            "image_split", "image_grid", "image_triptych", "image_mosaic", "image_band", "image_panel", "image_panel_strip", "ingredient_board", "ingredient_split", "state_triptych", "state_band", "state_gallery", "prep_stove", "heat_bars", "chart_dashboard", "closing",
            "image_hero", "image_overlay", "image_wall",
            "section_number", "image_statement",
@@ -289,6 +289,23 @@ def validate(spec: dict, base: Path) -> None:
                     raise ValueError(f"slide {index}: image not found: {path}")
                 with Image.open(path) as picture:
                     picture.verify()
+        if layout == "briefing":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 3:
+                raise ValueError(f"slide {index}: briefing requires exactly 3 items")
+            if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
+                   for item in items):
+                raise ValueError(f"slide {index}: every briefing item requires title and body")
+            stats = slide.get("stats")
+            if not isinstance(stats, list) or len(stats) != 3:
+                raise ValueError(f"slide {index}: briefing requires exactly 3 stats")
+        if layout == "matrix":
+            items = slide.get("items")
+            if not isinstance(items, list) or len(items) != 4:
+                raise ValueError(f"slide {index}: matrix requires exactly 4 items")
+            if any(not isinstance(item, dict) or not item.get("title") or not item.get("body")
+                   for item in items):
+                raise ValueError(f"slide {index}: every matrix item requires title and body")
         if layout == "academic_table":
             headers, rows = slide.get("headers"), slide.get("rows")
             if (not isinstance(headers, list) or not 2 <= len(headers) <= 5
@@ -1701,6 +1718,67 @@ class DeckBuilder:
         elif layout in {"chart", "chart_dashboard"}:
             top = 2.05 if page.get("subtitle") else 1.65
             self.chart_page(slide, page, top=top, height=6.6 - top)
+        elif layout == "briefing":
+            items = page["items"]
+            self.box(slide, 0, 0, 13.333, 1.10, "A62B1F")
+            self.text(slide, str(page.get("kicker", "工作简报 / BRIEFING")).upper(),
+                      .70, .25, 7.0, .24, 9, "E8C87A", True)
+            self.text(slide, page["title"], .70, .48, 11.9, .55,
+                      page.get("title_size", 27), "FFFFFF", True, font=self.head_font)
+            self.box(slide, .70, 1.28, 12.0, .018, "C9A227")
+            for index, item in enumerate(items):
+                y = 1.55 + index * 1.52
+                self.box(slide, .70, y, 7.25, 1.28, "FFFFFF")
+                self.box(slide, .70, y, .07, 1.28, "A62B1F")
+                self.text(slide, f"{index + 1:02d}", .95, y + .12, .55, .30,
+                          15, "A62B1F", True)
+                self.text(slide, item["title"], 1.55, y + .10, 3.9, .32,
+                          15, "text", True)
+                self.text(slide, item["body"], 1.55, y + .44, 4.2, .62,
+                          11.5, "muted")
+                if item.get("value"):
+                    self.text(slide, str(item["value"]), 5.95, y + .14, 1.6, .42,
+                              22, "A62B1F", True, font=self.head_font)
+                    if item.get("label"):
+                        self.text(slide, str(item["label"]), 5.95, y + .55, 1.7, .24,
+                                  8, "muted")
+            self.box(slide, 8.25, 1.55, 4.35, 4.85, "14243A")
+            self.text(slide, page.get("rail_title", "关键坐标"), 8.55, 1.80, 3.7, .26,
+                      9, "C9A227", True)
+            stats = page["stats"]
+            for index, stat in enumerate(stats):
+                sy = 2.25 + index * 1.15
+                self.text(slide, str(stat.get("value", "")), 8.55, sy, 3.5, .48,
+                          24, "C9A227", True, font=self.head_font)
+                self.text(slide, str(stat.get("label", "")), 8.55, sy + .48, 3.5, .25,
+                          9.5, "E8D8C4")
+                if index < 2:
+                    self.box(slide, 8.55, sy + .84, 3.5, .008, "3A4655")
+            if page.get("quote"):
+                self.text(slide, page["quote"], 8.55, 5.45, 3.6, .70, 10.5, "E8D8C4")
+            if page.get("bottom"):
+                self.box(slide, .70, 6.55, 11.90, .48, "A62B1F")
+                self.text(slide, page["bottom"], .92, 6.65, 11.45, .26, 10.5, "FFFFFF")
+        elif layout == "matrix":
+            items = page["items"]
+            positions = ((.70, 2.10), (6.80, 2.10), (.70, 4.35), (6.80, 4.35))
+            for index, item in enumerate(items):
+                x, y = positions[index]
+                self.box(slide, x, y, 5.85, 1.95, "FFFFFF")
+                self.box(slide, x, y, 5.85, .06, "A62B1F")
+                self.text(slide, f"{index + 1:02d}", x + .22, y + .18, .55, .28,
+                          14, "A62B1F", True)
+                self.text(slide, item["title"], x + .22, y + .52, 5.3, .32,
+                          16, "text", True)
+                self.text(slide, item["body"], x + .22, y + .90, 5.35, .58,
+                          11.5, "muted")
+                if item.get("tag"):
+                    self.box(slide, x + .22, y + 1.56, .48, .026, "C9A227")
+                    self.text(slide, item["tag"], x + .82, y + 1.47, 4.8, .24,
+                              9.5, "A62B1F", True)
+            if page.get("bottom"):
+                self.box(slide, .70, 6.55, 11.90, .48, "14243A")
+                self.text(slide, page["bottom"], .92, 6.65, 11.45, .26, 10.5, "FFFFFF")
         elif layout == "academic_table":
             headers, rows = page["headers"], page["rows"]
             if page.get("caption"):
@@ -1832,7 +1910,7 @@ class DeckBuilder:
         if page.get("source") and layout not in {"glass_overlay", "kpi_showcase",
                                                  "image_annotated", "ingredient_board",
                                                  "ingredient_split", "image_panel",
-                                                 "image_band", "image_mosaic"}:
+                                                 "image_band", "image_mosaic", "briefing", "matrix"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
