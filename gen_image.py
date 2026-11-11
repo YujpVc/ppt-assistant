@@ -10,10 +10,11 @@ Credentials live outside the repository. Resolution order:
 
   1. ``--config PATH``
   2. ``$PPT_IMAGE_CONFIG``
-  3. ``<engine-root>/image-config.json``      (git-ignored, per deployment)
-  4. ``~/.config/ppt-assistant/image.json``
-  5. the image-web ``config.json`` shipped beside the 经验库 tools
-  6. environment: ``UUAPI_API_KEY`` / ``UUAPI_BASE_URL``
+  3. ``~/.config/ppt-assistant/image.json``   (user-owned, never shipped)
+  4. environment: ``UUAPI_API_KEY`` / ``UUAPI_BASE_URL``
+
+No API key is bundled with this package. Copy ``image-config.example.json`` to
+``~/.config/ppt-assistant/image.json`` and fill in your own credentials.
 
 A config is ``{"api_base": "https://uuapi.io/v1", "api_key": "..."}``. The key is
 never printed, copied into the deck, or written into the metadata sidecar.
@@ -87,12 +88,7 @@ def install_proxy() -> str | None:
 def config_candidates() -> list[Path]:
     home = Path.home()
     return [
-        ENGINE / "image-config.json",
         home / ".config/ppt-assistant/image.json",
-        home / "Documents/Obsidian Vault/AI Handoff/AI经验库/项目书技术路线图"
-               "/技术路线图_审图模型重绘/工具/uuapi-image-web/config.json",
-        home / "Downloads/项目书技术路线图_绘图经验库_开箱包/技术路线图_审图模型重绘"
-               "/工具/uuapi-image-web/config.json",
     ]
 
 
@@ -119,8 +115,9 @@ def load_config(explicit: str | None) -> tuple[str, str, Path | None]:
     if base and key:
         return base.rstrip("/"), key, None
     raise ImageError(
-        "未找到生图配置。请设置 PPT_IMAGE_CONFIG 指向含 api_base/api_key 的 JSON，"
-        "或写入 ~/.config/ppt-assistant/image.json，或导出 UUAPI_API_KEY。")
+        "未找到生图配置。请复制 image-config.example.json 到 "
+        "~/.config/ppt-assistant/image.json 并填入自己的 api_base/api_key，"
+        "或用 PPT_IMAGE_CONFIG 指向自己的配置文件，或导出 UUAPI_API_KEY。")
 
 
 def ssl_context():

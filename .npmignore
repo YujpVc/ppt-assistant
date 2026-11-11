@@ -1,0 +1,7 @@
+image-config.json
+.env
+.env.*
+*.pem
+*.key
+secrets*
+credentials*
