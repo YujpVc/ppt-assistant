@@ -505,6 +505,11 @@
               - id: tool-subagent-control
                 name: '@deepseek-ai/dsh-tool-subagent-control'
 
+              # 0.2.1 里 list_agents 是独立子入口，0.2.2 并进了主入口。
+              # 自己兜一层：已有同名工具就让位，没有才补注册。
+              - id: tool-subagent-list-agents-fallback
+                name: '@yujp_vc/ppt-assistant/list-agents-fallback'
+
               - id: tool-subagent
                 name: '@deepseek-ai/dsh-tool-subagent'
                 config:
