@@ -104,6 +104,10 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 
 学术/基金 deck 的总体路线优先用它重画，不把论文总图整张贴进来。
 
+## 技术路线图参考
+
+插件包内置 `references/project-book-diagram.md`（通用制作规范）与 `references/diagram-review-rewrite.md`（全图转 HTML/SVG 重绘流程）。它们是引擎资产，不是某个项目输入目录的一部分；npm 包会随 `files` 一起安装。
+
 ## 图件体检
 
 ```bash

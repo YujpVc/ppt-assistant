@@ -52,10 +52,19 @@ def inspect(path: Path) -> dict:
                 "tables": tables,
                 "charts": charts,
                 "text_boxes": text_boxes,
+                "text_chars": sum(
+                    len(sh.text.strip()) for sh in slide.shapes
+                    if getattr(sh, "has_text_frame", False)
+                ) + sum(
+                    len(cell.text.strip())
+                    for sh in slide.shapes if getattr(sh, "has_table", False)
+                    for row in sh.table.rows for cell in row.cells
+                ),
                 "auto_shapes": auto_shapes,
                 "diagram_shapes": diagram_shapes,
                 "picture_coverage": round(picture_area / slide_area, 3) if slide_area else 0,
                 "shapes": len(slide.shapes),
+                "page_number": any(getattr(sh, "name", "") == "chrome:page" for sh in slide.shapes),
             }
         )
 
@@ -83,6 +92,7 @@ def inspect(path: Path) -> dict:
         "height_in": round(height, 3),
         "aspect_ratio": round(width / height, 4) if height else None,
         "visual_slides": visual_slides,
+        "max_image": 0.55,
         "layout_signatures": len(signatures),
         "slide_stats": slides,
     }
@@ -104,6 +114,27 @@ def failures(report: dict) -> list[str]:
             problems.append(
                 f"仅检测到 {report['layout_signatures']} 种页面结构，至少需要 3 种"
             )
+        for item in report["slide_stats"]:
+            if not item.get("page_number"):
+                problems.append(f"第 {item['slide']} 页没有页码；保存前必须补 chrome:page")
+
+        # Density and visual-grammar gate: images are evidence, not the page.
+        # Slide 1 is the chapter transition and may use a full-bleed image.
+        max_image = report.get("max_image", 0.55)
+        for item in report["slide_stats"][1:]:
+            if item["picture_coverage"] > max_image:
+                problems.append(
+                    f"第 {item['slide']} 页图片覆盖 {item['picture_coverage']:.0%}，超过 {max_image:.0%}；"
+                    "改用单侧出血/玻璃面板/图文分栏，把版面让给文字与矢量图"
+                )
+            if item["text_chars"] < 220:
+                problems.append(
+                    f"第 {item['slide']} 页正文仅 {item['text_chars']} 字，低于 220；先补机制/证据/判据"
+                )
+            if item["auto_shapes"] < 2 and not (item["charts"] or item["tables"]):
+                problems.append(
+                    f"第 {item['slide']} 页没有可见的矢量图/图标/图示；至少补 2 个原生形状或 1 个图表"
+                )
         text_only = [
             item["slide"]
             for item in report["slide_stats"]
@@ -160,12 +191,15 @@ def main() -> int:
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--template", type=Path,
                         help="compare page count, layout, shapes and image count against a source template")
+    parser.add_argument("--max-image", type=float, default=0.55,
+                        help="max picture coverage for content pages (default 0.55)")
     args = parser.parse_args()
     try:
         report = inspect(args.pptx)
     except Exception as exc:  # clear failure for the agent, without a traceback wall
         print(f"quality_check: 无法读取 {args.pptx}: {exc}", file=sys.stderr)
         return 2
+    report["max_image"] = args.max_image
     problems = failures(report)
     if args.template:
         if not args.template.is_file():
