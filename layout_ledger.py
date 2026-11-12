@@ -19,7 +19,7 @@ ALLOWED = [
     "sequence", "pillars", "matrix", "briefing", "image_panel", "image_panel_strip",
     "figure_annotated", "evidence_grid", "compare_grid", "academic_table",
     "image_band", "image_mosaic", "glass_overlay", "light_cover", "image_hero",
-    "image_statement", "section_number",
+    "image_statement", "section_number", "blocks", "image_arch",
 ]
 
 
@@ -66,7 +66,7 @@ def main() -> int:
         if not args.layout:
             print("claim requires --layout", file=sys.stderr)
             return 2
-        if args.layout not in ALLOWED:
+        if args.layout not in ALLOWED and not args.layout.startswith("custom_"):
             print(f"unknown layout: {args.layout}", file=sys.stderr)
             return 2
         if used.get(args.layout, 0) >= args.cap:
