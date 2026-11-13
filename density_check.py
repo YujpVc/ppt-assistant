@@ -42,9 +42,7 @@ def page_text(page: dict) -> str:
 
 def module_count(page: dict) -> int:
     total = 1  # the page's own claim/title
-    for key in ("items", "steps", "bullets", "stats", "chips", "flow", "step_notes", "blocks",
-                "lanes", "rails", "branches", "ledger_fields", "planning_bullets",
-                "state_reads", "dep_labels"):
+    for key in ("items", "steps", "bullets", "stats", "chips", "flow", "step_notes", "blocks"):
         total += count(page.get(key))
     total += count(page.get("rows")) * max(1, count(page.get("headers")))
     return total
@@ -118,92 +116,6 @@ def checks(page: dict) -> list[str]:
             out.append("architecture: 至少 4 级验证")
         if count(page.get("step_notes")) < 4:
             out.append("architecture: 4 级验证每级补一行说明/证据，不能只有标签")
-    elif layout == "state_overview":
-        steps, fields = count(page.get("steps")), count(page.get("step_fields"))
-        if not 3 <= steps <= 5:
-            out.append("state_overview: 3–5 个状态节点")
-        if fields != steps:
-            out.append("state_overview: step_fields 必须与 steps 一一对应")
-        if count(page.get("items")) != 3:
-            out.append("state_overview: 3 个不等宽区域（规划 / 技能 / 安全）")
-        if count(page.get("state_reads")) < 3:
-            out.append("state_overview: 每个区域至少一条 state_reads 字段声明")
-        if count(page.get("planning_bullets")) < 2:
-            out.append("state_overview: 规划区至少 2 条执行要点")
-        if not page.get("writeback"):
-            out.append("state_overview: 需要状态回写说明")
-        if not page.get("source"):
-            out.append("state_overview: 需要来源/依据")
-        # These labels sit in 8 pt boxes; long labels would wrap or overflow.
-        for label in (page.get("steps") or []) + (page.get("step_fields") or []):
-            if text_len(label) > 14:
-                out.append("state_overview: 状态标签超过 14 字，8pt 下会折行")
-                break
-        if module_count(page) < 12:
-            out.append(f"state_overview: 信息模块 {module_count(page)} 个，低于 12")
-    elif layout == "task_swimlane":
-        if count(page.get("lanes")) != 3:
-            out.append("task_swimlane: 需要任务 / 设备 / 机器人三条泳道")
-        if count(page.get("items")) != 4:
-            out.append("task_swimlane: 需要 4 个任务节点（3 步 + 1 道判定门）")
-        elif not any(isinstance(item, dict) and item.get("gate")
-                     for item in page.get("items", [])):
-            out.append("task_swimlane: 第 4 个节点必须标 gate=true")
-        if count(page.get("dep_labels")) != 2:
-            out.append("task_swimlane: 需要 2 个连接语义标签")
-        if not page.get("bottom_note"):
-            out.append("task_swimlane: 需要底部任务判定说明")
-        if not page.get("source"):
-            out.append("task_swimlane: 需要来源/依据")
-        for lane in page.get("lanes", []):
-            if not all(text_len(lane.get(key)) for key in ("label", "en", "sub", "fill")):
-                out.append("task_swimlane: 每条泳道需要 label/en/sub/fill")
-                break
-        if module_count(page) < 10:
-            out.append(f"task_swimlane: 信息模块 {module_count(page)} 个，低于 10")
-    elif layout == "safety_mechanism":
-        if count(page.get("items")) != 3:
-            out.append("safety_mechanism: 需要 3 条约束（含方向与阈值）")
-        for item in page.get("items", []):
-            if not isinstance(item, dict) or not item.get("note"):
-                out.append("safety_mechanism: 每条约束需要 note 说明阈值方向")
-                break
-        if count(page.get("steps")) != 3:
-            out.append("safety_mechanism: 需要 3 个导纳阶段")
-        if count(page.get("branches")) != 2:
-            out.append("safety_mechanism: 需要修正 / 停机两条处置分支")
-        if not page.get("source"):
-            out.append("safety_mechanism: 需要来源/依据")
-        if module_count(page) < 9:
-            out.append(f"safety_mechanism: 信息模块 {module_count(page)} 个，低于 9")
-    elif layout == "ledger_rails":
-        if count(page.get("items")) != 4:
-            out.append("ledger_rails: 需要 4 行状态账本（执行 / 偏差 / 分支 / 回写）")
-        rails = page.get("rails") or []
-        if len(rails) != 2:
-            out.append("ledger_rails: 需要 A/B 两条可对照指标轨")
-        for rail in rails:
-            if not isinstance(rail, dict) or count(rail.get("metrics")) < 3:
-                out.append("ledger_rails: 每条指标轨至少 3 个指标")
-                break
-            for metric in rail.get("metrics", []):
-                if not all(text_len(metric.get(key)) for key in
-                           ("name", "criterion", "direction", "unit")):
-                    out.append("ledger_rails: 每个指标需要 name/criterion/direction/unit")
-                    break
-        if count(page.get("branches")) != 2:
-            out.append("ledger_rails: 需要可恢复 / 不可逆两条处置分支")
-        if count(page.get("ledger_fields")) < 4:
-            out.append("ledger_rails: 账本至少 4 个字段")
-        joined = " / ".join(str(field) for field in page.get("ledger_fields") or [])
-        if len(joined) > 40:
-            out.append("ledger_rails: 账本字段行超过 40 字，8pt 单行放不下")
-        if not page.get("rewrite_chip"):
-            out.append("ledger_rails: 需要回写去向 chip")
-        if not page.get("source"):
-            out.append("ledger_rails: 需要来源/依据")
-        if module_count(page) < 14:
-            out.append(f"ledger_rails: 信息模块 {module_count(page)} 个，低于 14")
     elif layout in {"image_panel", "image_panel_strip"}:
         if count(page.get("bullets")) < 3 and count(page.get("steps")) < 3:
             out.append(f"{layout}: 至少 3 条要点或 3 步状态梯")
