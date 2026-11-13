@@ -300,6 +300,7 @@
                 SELF-CHECK — ALWAYS run, and iterate until satisfied (never skip)
                 - 先出缩略图总览：`bash <engine-root>/run_py.sh contact_sheet.py <工作区>/.render --out <工作区>/contact.png --cols 4 --labels`；先看节奏、密度、相邻页重复，再抽封面 / 最密页 / 特殊媒体页 / 结束页全尺寸看。不要一开始就逐页全尺寸。
                 - pptfast 首选：`bash <engine-root>/run_pptfast.sh audit <deck项目>` — 零 token 确定性几何审查（溢出/越界/低对比/重叠/内容截断/内容丢失），exit 0 才算通过；发现问题按「重组，不删除」修，再单独重跑 audit。启动器只使用已安装的 `@liustack/pptfast`，不会执行工作区脚本。
+                - 审查闭环（强制）：审查发现的问题必须回到 spec 修改 → 重建 → 重渲染 → 再开新一轮独立审查；最多 3 轮，直到没有“必须改”项，或只剩用户接受的次级问题。每轮落 `visual_review_roundN.md`，报告写轮次与状态；审查不通过不得说完成。
                 - 独立视觉审查（强制）：每次改完模式、重跑 zero shot、返工页面或发布前，必须另开一个全新子 agent 做视觉审查；审查者只读、不改文件，看 contact 与每页全图，按 `references/visual-review.md` 输出“页码+位置+具体问题+3 个必须改”。审查不过，不得说完成、不得发布。
                 - 视觉审查：优先运行 `bash <engine-root>/run_py.sh render_ppt.py <out.pptx> --outdir <工作区>/.render`（它会使用系统或用户态 LibreOffice，并生成 PDF/PNG），再用 `bash <engine-root>/run_py.sh vision_check.py <工作区>/.render/page-01.png "<问题>"`。以 STRICT 评委逐页打分，盯「饱满度」「版式变化」「断行/单字成行」，修到每页 ≥8/10。
                 - 旧引擎 fallback：`bash <engine-root>/run_py.sh check.py <out.pptx>`。
