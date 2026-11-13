@@ -20,6 +20,7 @@ ALLOWED = [
     "figure_annotated", "evidence_grid", "compare_grid", "academic_table",
     "image_band", "image_mosaic", "glass_overlay", "light_cover", "image_hero",
     "image_statement", "section_number", "blocks", "image_arch",
+    "chapter_band", "chapter_split", "frost_number_panel",
 ]
 
 

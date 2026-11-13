@@ -37,7 +37,7 @@ LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence
            "section_number", "image_statement",
            "split_diagonal", "glass_overlay", "quote_stage", "kpi_showcase",
            "cutout_statement", "image_annotated", "image_arch", "blocks",
-           "frost_number_panel"}
+           "frost_number_panel", "chapter_band", "chapter_split"}
 THEMES = {
     "midnight": {"bg": "0B1324", "panel": "17243B", "tint": "1B3147",
                  "soft": "223A50", "text": "F7FBFF", "muted": "B2C2D9",
@@ -478,10 +478,21 @@ class DeckBuilder:
             shape._element.remove(style)
         return shape
 
-    def frame(self, shape, color="1C1B19", width=1.2):
+    def frame(self, shape, color=None, width=1.2):
+        color = color or self.colors["text"]
         shape.line.color.rgb = RGBColor.from_string(self.colors.get(color, color))
         shape.line.width = Pt(width)
         return shape
+
+    def _clip_to_box(self, box, toward):
+        """Where the ray from a node centre toward another node leaves its box."""
+        cx, cy, w, h = box
+        dx, dy = toward[0] - cx, toward[1] - cy
+        if abs(dx) < 1e-6 and abs(dy) < 1e-6:
+            return cx, cy
+        scale = min((w / 2) / abs(dx) if dx else float("inf"),
+                    (h / 2) / abs(dy) if dy else float("inf"))
+        return cx + dx * scale, cy + dy * scale
 
     def _arrow(self, slide, x1, y1, x2, y2, color="2F5597", width=1.5):
         conn = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT,
@@ -756,6 +767,12 @@ class DeckBuilder:
         a, b = media.parse_color(first), media.parse_color(second)
         return media.to_hex(tuple(int(round(x * (1 - ratio) + y * ratio))
                                   for x, y in zip(a, b)))
+    def soft_tint(self) -> str:
+        return self._blend(self.colors["accent"], "FFFFFF", .86)
+
+    def paper_line(self) -> str:
+        return self._blend(self.colors["accent"], self.colors["bg"], .58)
+
     def _accent_on(self, light_text: bool) -> str:
         """Accent that survives on a dark image/theme without fixed cyan."""
         if light_text:
@@ -847,7 +864,7 @@ class DeckBuilder:
         soft = bool(page.get("soft"))
         x, w = (6.78, 5.82) if soft else (6.55, 6.05)
         if soft:
-            self.box(slide, 6.30, 1.38, .012, 4.95, "D8C6B4")
+            self.box(slide, 6.30, 1.38, .012, 4.95, self.paper_line())
         kicker = str(page.get("kicker", f"SECTION {number}")).upper()
         self.text(slide, kicker, x, 1.42, w, 0.3, 12, accent, True, tracking=180)
         self.text(slide, page["title"], x, 1.86, w, 2.0,
@@ -860,7 +877,7 @@ class DeckBuilder:
         for position, item in enumerate((page.get("items") or [])[:4]):
             y = cursor + position * (.50 if soft else .50)
             if soft:
-                self.box(slide, x, y - .02, w, .44, "FBF6EE", rounded=True)
+                self.box(slide, x, y - .02, w, .44, self.colors["panel"], rounded=True)
                 self.circle(slide, x + .12, y + .13, .21, .21, accent)
                 self.text(slide, f"{position + 1:02d}", x + .12, y + .13,
                           .21, .21, 6.8, "FFFFFF", True, align=PP_ALIGN.CENTER,
@@ -1253,9 +1270,13 @@ class DeckBuilder:
             subtitle = self.text(slide, page["subtitle"], .6, 1.35, 12.1, .65, 17, "muted")
             if subtitle is not None:
                 subtitle.name = "subtitle"
-        footer = self.text(slide, self.meta["title"], .6, 7.06, 10.8, .24, 10, "muted")
-        if footer is not None:
-            footer.name = "chrome:footer"
+        # A page's own source line sits in the footer lane on most content
+        # layouts; `meta.footer: false` (or a per-page override) drops the
+        # running deck-title footer so the two lines cannot stack.
+        if page.get("footer", self.meta.get("footer", True)):
+            footer = self.text(slide, self.meta["title"], .6, 7.06, 10.8, .24, 10, "muted")
+            if footer is not None:
+                footer.name = "chrome:footer"
         number = self.text(slide, f"{index:02}", 12.0, 7.02, .7, .3, 12, "muted")
         if number is not None:
             number.name = "chrome:page"
@@ -1281,6 +1302,76 @@ class DeckBuilder:
                            align=PP_ALIGN.RIGHT)
         if number is not None:
             number.name = "chrome:page"
+
+    def chapter_split_slide(self, slide, page):
+        """Soft chapter opener: giant numeral on paper, image in a rounded right panel."""
+        self.add_full(slide, self.background_image(grid=False, seed=page.get("index", 1),
+                                                   grain=0.004, vignette_value=0.02))
+        if page.get("image"):
+            self.artwork(slide, page["image"], 7.35, .48, 5.55, 6.55,
+                         radius=float(page.get("image_radius", .055)),
+                         scrim={"direction": "left", "color": self.colors["bg"],
+                                "start": .0, "end": .22, "opacity": .72})
+        idx = str(page.get("number", "01"))
+        self.type_art(slide, idx, (-.32, .45, 4.0, 3.8), mode="gradient", opacity=.92)
+        self.text(slide, str(page.get("kicker", "章节过渡")), .72, 4.18, 5.8, .24, 9.0,
+                  "accent", True, spacing=0)
+        self.text(slide, page["title"], .72, 4.50, 6.05, 1.20,
+                  page.get("title_size", 29), "text", True, font=self.head_font,
+                  spacing=0, line_spacing=1.05)
+        if page.get("body"):
+            self.text(slide, page["body"], .72, 5.82, 5.95, .62, 11.6, "muted",
+                      spacing=0, line_spacing=1.1)
+        for i, item in enumerate((page.get("items") or [])[:3]):
+            yy = 6.34 + i * .27
+            self.text(slide, f"{i + 1:02d}", .72, yy + .02, .34, .18, 8.0, "accent", True,
+                      spacing=0)
+            self.text(slide, str(item), 1.10, yy, 5.50, .22, 8.6, "text", True,
+                      spacing=0)
+        if page.get("source"):
+            self.text(slide, page["source"], .72, 7.18, 6.3, .18, 8.0, "muted")
+
+    def chapter_band_slide(self, slide, page):
+        """Chapter opener with a top image band and a paper index below.
+
+        A deliberately different rhythm from frost_number_panel: the image is
+        a horizontal strip, the number is gradient display type, and the three
+        chapter points sit like an index rather than glass rows.
+        """
+        self.add_full(slide, self.background_image(grid=False, seed=page.get("index", 1),
+                                                   grain=0.004, vignette_value=0.02))
+        if page.get("image"):
+            scrim = {"direction": "bottom", "color": self.colors["bg"],
+                     "start": .52, "end": 1.0, "opacity": .96} if page.get("soft", True) else None
+            self.artwork(slide, page["image"], 0, 0, 13.333, 2.62, radius=0.0,
+                         scrim=scrim)
+            if not page.get("soft", True):
+                self.box(slide, 0, 2.62, 13.333, .012, self.colors["accent"])
+        idx = str(page.get("number", "01"))
+        self.type_art(slide, idx, (-.25, 2.55, 4.55, 3.50), mode="gradient",
+                      opacity=.95)
+        x, w = 4.55, 7.95
+        self.text(slide, str(page.get("kicker", "章节过渡")), x, 2.92, w, .24, 9.0,
+                  "accent", True, spacing=0)
+        self.text(slide, page["title"], x, 3.24, w, 1.15,
+                  page.get("title_size", 30), "text", True, font=self.head_font,
+                  spacing=0, line_spacing=1.05)
+        cursor = 4.55
+        if page.get("body"):
+            self.text(slide, page["body"], x, cursor, w, .72, 12.2, "muted",
+                      spacing=0, line_spacing=1.1)
+            cursor += .82
+        for i, item in enumerate((page.get("items") or [])[:3]):
+            yy = cursor + i * .48
+            if page.get("soft", True):
+                self.box(slide, x - .08, yy - .03, w - .30, .38,
+                         self.soft_tint(), rounded=True)
+            self.text(slide, f"{i + 1:02d}", x, yy + .04, .40, .20, 8.0, "accent", True,
+                      spacing=0)
+            self.text(slide, str(item), x + .50, yy, w - .72, .30, 9.4, "text",
+                      True, spacing=0)
+        if page.get("source"):
+            self.text(slide, page["source"], .62, 6.95, 12.0, .20, 8.0, "muted")
 
     def frost_number_panel_slide(self, slide, page):
         """Left frosted numeral + right frosted text panel on a full-bleed image.
@@ -1311,7 +1402,7 @@ class DeckBuilder:
             ImageFilter.GaussianBlur(float(page.get("number_blur", 16))))
         art = media.text_art(number, 500, image=src,
                              outline=int(page.get("number_outline", 2)),
-                             outline_color=page.get("number_outline_color", "D8C6B4"))
+                             outline_color=page.get("number_outline_color", self.paper_line()))
         frost = float(page.get("number_frost", 0.50))
         alpha = art.getchannel("A")
         wash = Image.new("RGBA", art.size, (255, 253, 248, 0))
@@ -1382,8 +1473,13 @@ class DeckBuilder:
             kind = block.get("type", "text")
             x, y, w, h = rect(block)
             if kind == "rule":
-                self.box(slide, x, y, w, max(.008, float(block.get("weight", 1)) / 72),
-                         block.get("color", "accent"))
+                thickness = max(.008, float(block.get("weight", 1)) / 72)
+                if block.get("vertical"):
+                    # A vertical rail separates a column from its evidence band;
+                    # horizontal rules stay as they are.
+                    self.box(slide, x, y, thickness, h, block.get("color", "accent"))
+                else:
+                    self.box(slide, x, y, w, thickness, block.get("color", "accent"))
             elif kind == "image":
                 image = block.get("image")
                 if not image:
@@ -1418,9 +1514,14 @@ class DeckBuilder:
                 items = block.get("items", [])
                 if not items:
                     continue
-                gap = .20
-                bw = (w - gap * (len(items) - 1)) / len(items)
-                role_fill = {"input": "E8EFE9", "process": "F1E7DB",
+                gap = .42
+                # Keep semantic nodes compact instead of stretching four or five
+                # nodes across the full 12-column band into long ovals.
+                raw_w = (w - gap * (len(items) - 1)) / len(items)
+                bw = min(1.50, raw_w)
+                row_w = bw * len(items) + gap * (len(items) - 1)
+                start_x = x + (w - row_w) / 2
+                role_fill = {"input": "E8EFE9", "process": self.soft_tint(),
                              "decision": "F6E3D8", "output": "DCE6EF"}
                 shapes = {"round": MSO_SHAPE.ROUNDED_RECTANGLE,
                           "rect": MSO_SHAPE.RECTANGLE,
@@ -1429,7 +1530,7 @@ class DeckBuilder:
                           "hex": MSO_SHAPE.HEXAGON}
                 for pos, raw in enumerate(items):
                     item = raw if isinstance(raw, dict) else {"title": str(raw)}
-                    bx = x + pos * (bw + gap)
+                    bx = start_x + pos * (bw + gap)
                     by = y + h * .47
                     bh = min(.52, h * .34)
                     shape_type = shapes.get(str(item.get("shape", "round")), MSO_SHAPE.ROUNDED_RECTANGLE)
@@ -1437,7 +1538,7 @@ class DeckBuilder:
                                                   Inches(bw), Inches(bh))
                     node.fill.solid()
                     node.fill.fore_color.rgb = RGBColor.from_string(
-                        item.get("fill", role_fill.get(item.get("role"), "F1E7DB")))
+                        item.get("fill", role_fill.get(item.get("role"), self.soft_tint())))
                     node.line.color.rgb = RGBColor.from_string(self.colors["accent"])
                     node.line.width = Pt(0.8)
                     inset = .10 if str(item.get("shape", "round")) in {"diamond", "circle"} else .05
@@ -1450,9 +1551,9 @@ class DeckBuilder:
                     if body:
                         self.text(slide, body, bx, by + bh + .05, bw, .30,
                                   7.4, "muted", align=PP_ALIGN.CENTER)
-                    self.circle(slide, bx + .02, by - .28, .22, .22, "accent")
-                    self.text(slide, f"{pos + 1:02d}", bx + .02, by - .28, .22, .22,
-                              6.2, "FFFFFF", True, align=PP_ALIGN.CENTER,
+                    self.circle(slide, bx + .01, by - .30, .26, .26, "accent")
+                    self.text(slide, f"{pos + 1:02d}", bx + .01, by - .30, .26, .26,
+                              8.0, "FFFFFF", True, align=PP_ALIGN.CENTER,
                               anchor=MSO_ANCHOR.MIDDLE, spacing=0, line_spacing=1.0)
                     if pos < len(items) - 1:
                         self._arrow(slide, bx + bw + .02, by + bh * .5,
@@ -1498,7 +1599,7 @@ class DeckBuilder:
                 axis_y = y + h - .34
                 for tick in (block.get("ticks") or []):
                     tx_ = x + label_w + (float(tick) - lo) / max(.01, hi - lo) * (w - label_w)
-                    self.box(slide, tx_, axis_y - .06, .008, h * .72, "D8C6B4")
+                    self.box(slide, tx_, axis_y - .06, .008, h * .72, self.paper_line())
                     self.text(slide, str(tick), tx_ - .18, axis_y + .02, .36, .16, 6.8, "muted",
                               align=PP_ALIGN.CENTER)
                 for index, row in enumerate(rows[:6]):
@@ -1512,7 +1613,7 @@ class DeckBuilder:
                     if row.get("tag"):
                         self.text(slide, str(row["tag"]), bar_x + .04, ry + .03,
                                   max(.2, bar_w - .08), .16, 6.2, "text")
-                self.box(slide, x + label_w, axis_y, w - label_w, .010, "1C2B3A")
+                self.box(slide, x + label_w, axis_y, w - label_w, .010, self.colors["text"])
             elif kind == "graph":
                 nodes = block.get("nodes") or []
                 if not nodes:
@@ -1521,26 +1622,32 @@ class DeckBuilder:
                 for node in nodes:
                     nx = x + float(node.get("x", .5)) * w
                     ny = y + float(node.get("y", .5)) * h
-                    positions[node["id"]] = (nx, ny)
                     label = str(node.get("label", ""))
-                    nw = min(1.15, max(.58, len(label) * .105))
-                    nh = .24
+                    nw = min(1.35, max(.70, len(label) * .125))
+                    nh = .28
+                    positions[node["id"]] = (nx, ny, nw, nh)
                     box = self.box(slide, nx - nw / 2, ny - nh / 2, nw, nh,
                                    node.get("fill", "FFFFFF"), rounded=True)
-                    self.frame(box, node.get("line", "1C2B3A"), .8)
+                    self.frame(box, node.get("line", self.colors["text"]), .8)
                     self.text(slide, label, nx - nw / 2 + .03, ny - nh / 2,
-                              nw - .06, nh, 6.8, "text", True,
+                              nw - .06, nh, 8.0, "text", True,
                               align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE,
                               spacing=0, line_spacing=1.0)
                 for edge in block.get("edges") or []:
                     a, b = positions.get(edge.get("from")), positions.get(edge.get("to"))
                     if not a or not b:
                         continue
-                    self._arrow(slide, a[0], a[1], b[0], b[1],
+                    # Start and end on the node border, not its centre: an
+                    # arrow drawn centre-to-centre paints over the node label
+                    # and puts the head on top of the text it points at.
+                    start = self._clip_to_box(a, b)
+                    end = self._clip_to_box(b, a)
+                    self._arrow(slide, start[0], start[1], end[0], end[1],
                                 edge.get("color", self.colors["accent"]), .9)
                     if edge.get("label"):
-                        self.text(slide, str(edge["label"]), (a[0] + b[0]) / 2 - .25,
-                                  (a[1] + b[1]) / 2 - .14, .50, .14, 6.2, "muted",
+                        mid_x, mid_y = (start[0] + end[0]) / 2, (start[1] + end[1]) / 2
+                        self.text(slide, str(edge["label"]), mid_x - .25,
+                                  mid_y - .14, .50, .14, 6.2, "muted",
                                   align=PP_ALIGN.CENTER)
             elif kind == "quote":
                 self.box(slide, x, y, max(.035, w * .01), h, "accent")
@@ -1611,7 +1718,11 @@ class DeckBuilder:
 
     def compose(self, slide, page):
         layout = page["layout"]
-        if layout == "frost_number_panel":
+        if layout == "chapter_split":
+            self.chapter_split_slide(slide, page)
+        elif layout == "chapter_band":
+            self.chapter_band_slide(slide, page)
+        elif layout == "frost_number_panel":
             self.frost_number_panel_slide(slide, page)
         elif layout == "blocks":
             self.blocks_slide(slide, page)
@@ -1680,7 +1791,7 @@ class DeckBuilder:
         elif layout == "architecture":
             items = page["items"]
             light = bool(page.get("light"))
-            band_fill = "FFFFFF" if light else "1C1B19"
+            band_fill = "FFFFFF" if light else self.colors["text"]
             band_text = "text" if light else "FFFFFF"
             meta_color = "accent" if light else "B98A63"
             # Ink band: the page's one-sentence argument, not another title.
@@ -1693,15 +1804,15 @@ class DeckBuilder:
             self.text(slide, "01—03 / 同一任务状态", 9.55, 1.55, 3.15, .22,
                       8, meta_color, True, align=PP_ALIGN.RIGHT)
             # Technical canvas: a single field, not three cards.
-            self.box(slide, .45, 2.05, 12.43, 3.35, "F1E7DB")
+            self.box(slide, .45, 2.05, 12.43, 3.35, self.soft_tint())
             for x in (4.45, 8.55):
-                self.box(slide, x, 2.25, .008, 3.0, "D8C6B4")
+                self.box(slide, x, 2.25, .008, 3.0, self.paper_line())
             for y in (2.25, 5.25):
-                self.box(slide, .60, y, 12.1, .008, "D8C6B4")
+                self.box(slide, .60, y, 12.1, .008, self.paper_line())
             for index, item in enumerate(items):
                 x = .65 + index * 4.10
                 self.box(slide, x, 2.25, 3.40, .030,
-                         "B04A2A" if index == 0 else "D8C6B4")
+                         self.colors["accent"] if index == 0 else self.paper_line())
                 self.text(slide, item.get("kicker", f"STAGE {index + 1:02d}"),
                           x, 2.36, 1.80, .18, 7.5, "muted", True)
                 self.text(slide, f"{index + 1:02d}", x, 2.52, 1.0, .76,
@@ -1712,29 +1823,29 @@ class DeckBuilder:
                           13, "muted")
                 if index < 2:
                     y = 3.52
-                    self.box(slide, x + 3.45, y, .50, .008, "B04A2A")
+                    self.box(slide, x + 3.45, y, .50, .008, self.colors["accent"])
                     tri = slide.shapes.add_shape(
                         MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(x + 3.88),
                         Inches(y - .10), Inches(.18), Inches(.22))
                     tri.rotation = 90
                     tri.fill.solid()
-                    tri.fill.fore_color.rgb = RGBColor.from_string("B04A2A")
+                    tri.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
                     tri.line.fill.background()
             # Evidence write-back loop: a thin, technical return path.
             loop_y = 5.30
-            self.box(slide, 10.55, 5.02, .008, .28, "B04A2A")
-            self.box(slide, 2.35, loop_y, 8.20, .008, "B04A2A")
-            self.box(slide, 2.35, 5.02, .008, .28, "B04A2A")
+            self.box(slide, 10.55, 5.02, .008, .28, self.colors["accent"])
+            self.box(slide, 2.35, loop_y, 8.20, .008, self.colors["accent"])
+            self.box(slide, 2.35, 5.02, .008, .28, self.colors["accent"])
             tri = slide.shapes.add_shape(
                 MSO_SHAPE.ISOSCELES_TRIANGLE, Inches(2.27), Inches(4.94),
                 Inches(.18), Inches(.22))
             tri.fill.solid()
-            tri.fill.fore_color.rgb = RGBColor.from_string("B04A2A")
+            tri.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
             tri.line.fill.background()
             self.text(slide, page.get("loop", "执行证据回写计划"),
                       4.95, 5.06, 4.2, .22, 8, "muted")
             # Validation runway: four grades.
-            self.box(slide, .60, 5.58, 12.10, 1.34, "FFFFFF" if light else "1C1B19")
+            self.box(slide, .60, 5.58, 12.10, 1.34, "FFFFFF" if light else self.colors["text"])
             self.text(slide, page.get("bottom_title", "验证递进"),
                       .85, 5.78, 1.55, .26, 11,
                       "accent" if light else "B98A63", True)
@@ -1752,11 +1863,11 @@ class DeckBuilder:
                               7.4, "muted")
                 if index:
                     self.box(slide, x - .16, 5.80, .006, .80,
-                             "D8C6B4" if light else "5A4A40")
+                             self.paper_line() if light else self.colors["text"])
         elif layout == "sequence":
             items = page["items"]
             rail_y = 4.08
-            self.box(slide, 1.00, rail_y, 11.35, .012, "B04A2A")
+            self.box(slide, 1.00, rail_y, 11.35, .012, self.colors["accent"])
             n = len(items)
             if n == 4:
                 positions = [1.70, 4.82, 7.94, 11.06]
@@ -1769,13 +1880,13 @@ class DeckBuilder:
             for index, item in enumerate(items):
                 x = positions[index]
                 above = index % 2 == 0
-                self.box(slide, x - .08, rail_y - .08, .16, .16, "B04A2A")
+                self.box(slide, x - .08, rail_y - .08, .16, .16, self.colors["accent"])
                 self.box(slide, x - .006, 3.58 if above else rail_y,
-                         .012, .50, "B04A2A")
+                         .012, .50, self.colors["accent"])
                 sx = x - half
                 y = 1.95 if above else 4.55
                 self.box(slide, sx - .15, y, .03,
-                         1.62 if above else 1.75, "B04A2A")
+                         1.62 if above else 1.75, self.colors["accent"])
                 self.text(slide, f"{index + 1:02d}", sx, y - .04, .75, .58,
                           30, "accent", True, font=self.head_font)
                 self.text(slide, item["title"], sx, y + .50, bw, .40,
@@ -1790,7 +1901,7 @@ class DeckBuilder:
                 Inches(rail_y - .10), Inches(.18), Inches(.22))
             tri.rotation = 90
             tri.fill.solid()
-            tri.fill.fore_color.rgb = RGBColor.from_string("B04A2A")
+            tri.fill.fore_color.rgb = RGBColor.from_string(self.colors["accent"])
             tri.line.fill.background()
             if page.get("bottom"):
                 self.text(slide, page["bottom"], .65, 6.55, 12.0, .30,
@@ -1801,7 +1912,7 @@ class DeckBuilder:
             width = (12.10 - .25 * (n - 1)) / n
             for index, item in enumerate(items):
                 x = .60 + index * (width + .25)
-                self.box(slide, x, 2.15, width, 1.05, page.get("pillar_header", "F1E7DB"))
+                self.box(slide, x, 2.15, width, 1.05, page.get("pillar_header", self.soft_tint()))
                 self.box(slide, x, 2.15, width, .035, "accent")
                 self.text(slide, f"{index + 1:02d}", x + .18, 2.28, .55, .22,
                           9, "accent", True)
@@ -1814,7 +1925,7 @@ class DeckBuilder:
                     self.text(slide, item["foot"], x + .18,
                               4.82 if n == 4 else 5.62, width - .36, .25,
                               8.5 if n == 4 else 9, "accent", True)
-                self.box(slide, x, 6.02, width, .012, "D8C6B4")
+                self.box(slide, x, 6.02, width, .012, self.paper_line())
             if page.get("bottom"):
                 if n == 4:
                     self.box(slide, .65, 4.82, .8, .03, "accent")
@@ -1831,7 +1942,7 @@ class DeckBuilder:
                          "start": .42, "end": 1.0, "opacity": .94}
                 ink, bodyc = "FFFFFF", "DCE8F6"
             else:
-                scrim = {"direction": "bottom", "color": "F7F3EC",
+                scrim = {"direction": "bottom", "color": self.colors["bg"],
                          "start": .05, "end": .96, "opacity": .88}
                 ink, bodyc = "text", "muted"
             if page.get("bleed"):
@@ -1841,7 +1952,7 @@ class DeckBuilder:
                              radius=0.0, scrim=scrim)
                 self.artwork(slide, items[2]["image"], 8.0, 4.145, 5.333, 2.625,
                              radius=0.0, scrim=scrim)
-                self.box(slide, 7.985, 1.52, .014, 5.25, "B04A2A")
+                self.box(slide, 7.985, 1.52, .014, 5.25, self.colors["accent"])
             else:
                 self.artwork(slide, items[0]["image"], .60, 1.98, 7.15, 4.65,
                              radius=0.0, scrim=scrim)
@@ -1849,7 +1960,7 @@ class DeckBuilder:
                              radius=0.0, scrim=scrim)
                 self.artwork(slide, items[2]["image"], 8.00, 4.35, 4.70, 2.20,
                              radius=0.0, scrim=scrim)
-                self.box(slide, 7.86, 1.98, .012, 4.57, "B04A2A")
+                self.box(slide, 7.86, 1.98, .012, 4.57, self.colors["accent"])
             self.text(slide, "01", .80, 5.58, .7, .44, 24, ink, True)
             self.text(slide, items[0]["title"], 1.52, 5.70, 5.8, .34, 18, ink, True)
             self.text(slide, items[0]["body"], 1.52, 6.06, 5.8, .26, 10.5, bodyc)
@@ -1860,7 +1971,7 @@ class DeckBuilder:
             self.text(slide, items[2]["title"], 8.72, 5.56, 3.7, .26, 12, ink, True)
             self.text(slide, items[2]["body"], 8.72, 5.80, 3.7, .22, 8.5, bodyc)
             if page.get("strip"):
-                self.box(slide, .65, 6.66, 11.9, .010, "D8C6B4")
+                self.box(slide, .65, 6.66, 11.9, .010, self.paper_line())
                 labels = page["strip"][:3]
                 for index, label in enumerate(labels):
                     self.text(slide, label, .65 + index * 4.05, 6.72, 3.7, .18,
@@ -1875,7 +1986,7 @@ class DeckBuilder:
                          "start": .28, "end": 1.0, "opacity": .94}
                 ink, bodyc, kick = "FFFFFF", "DCE8F6", "B98A63"
             else:
-                scrim = {"direction": "bottom", "color": "F7F3EC",
+                scrim = {"direction": "bottom", "color": self.colors["bg"],
                          "start": .02, "end": .92, "opacity": .86}
                 ink, bodyc, kick = "text", "muted", "accent"
             self.artwork(slide, page["image"], 0, 0, 13.333, 4.55, radius=0.0,
@@ -1887,7 +1998,7 @@ class DeckBuilder:
                       page.get("title_size", 30), ink, True, font=self.head_font)
             if page.get("body"):
                 self.text(slide, page["body"], .65, 2.78, 7.4, .78, 13.5, bodyc)
-            self.box(slide, .60, 4.55, 12.1, .012, "B04A2A")
+            self.box(slide, .60, 4.55, 12.1, .012, self.colors["accent"])
             for index, item in enumerate(items):
                 x = .65 + index * 4.05
                 self.text(slide, f"{index + 1:02d}", x, 4.74, .55, .24,
@@ -1924,7 +2035,7 @@ class DeckBuilder:
                           anchor=MSO_ANCHOR.MIDDLE)
                 if point.get("label"):
                     lw = min(2.35, image_w - (mx - image_x) - .28)
-                    self.box(slide, mx + .17, my - .11, lw, .24, "1C2B3A", rounded=True)
+                    self.box(slide, mx + .17, my - .11, lw, .24, self.colors["text"], rounded=True)
                     self.text(slide, str(point["label"]), mx + .24, my - .11,
                               lw - .14, .24, 7.0, "FFFFFF", True,
                               anchor=MSO_ANCHOR.MIDDLE)
@@ -1936,11 +2047,11 @@ class DeckBuilder:
                 iw, ih = 1.95, 1.32
                 ix = image_x + image_w - iw - .24
                 iy = 7.50 - ih - .24
-                self.box(slide, ix - .06, iy - .06, iw + .12, ih + .12, "FBF6EE")
+                self.box(slide, ix - .06, iy - .06, iw + .12, ih + .12, self.colors["panel"])
                 self.artwork(slide, page["inset"], ix, iy, iw, ih, radius=0.0)
-            self.box(slide, panel_x, 0, panel_w, 7.5, "FBF6EE")
+            self.box(slide, panel_x, 0, panel_w, 7.5, self.colors["panel"])
             seam = panel_x if side == "left" else image_x - .012
-            self.box(slide, seam, 0, .012, 7.5, "B04A2A")
+            self.box(slide, seam, 0, .012, 7.5, "accent")
             px = panel_x + .52
             pw = panel_w - 1.04
             if page.get("kicker"):
@@ -1961,7 +2072,7 @@ class DeckBuilder:
                 rail_x = px + .14
                 step_gap = .68
                 self.box(slide, rail_x - .006, cursor + .14, .012,
-                         step_gap * (len(steps) - 1) + .18, "D8C6B4")
+                         step_gap * (len(steps) - 1) + .18, self.paper_line())
                 for index, step_item in enumerate(steps):
                     sy = cursor + index * step_gap
                     self.circle(slide, rail_x - .13, sy + .09, .25, .25, "accent")
@@ -1972,7 +2083,7 @@ class DeckBuilder:
                               pw - .96, .24, 12.6, "text", True)
                     if step_item.get("tag"):
                         self.box(slide, px + pw - .62, sy + .01, .60, .20,
-                                 "F3E4D5", rounded=True)
+                                 self.soft_tint(), rounded=True)
                         self.text(slide, step_item["tag"], px + pw - .58, sy + .04,
                                   .52, .16, 7.2, "accent", True,
                                   align=PP_ALIGN.CENTER)
@@ -1984,7 +2095,7 @@ class DeckBuilder:
                     step = .56 if soft else (.40 if dense else .62)
                     y = cursor + index * step
                     if soft:
-                        self.box(slide, px, y - .01, pw, .50, "F6EEE4", rounded=True)
+                        self.box(slide, px, y - .01, pw, .50, self.soft_tint(), rounded=True)
                         self.circle(slide, px + .15, y + .13, .21, .21, "accent")
                         self.text(slide, str(index + 1).zfill(2), px + .15, y + .13,
                                   .21, .21, 6.8, "FFFFFF", True, align=PP_ALIGN.CENTER,
@@ -2007,11 +2118,11 @@ class DeckBuilder:
                     self.text(slide, str(stat.get("label", "")), sx, stat_y + .46,
                               span - .2, .32, 9, "muted")
                     if index:
-                        self.box(slide, sx - .16, stat_y, .008, .72, "D8C6B4")
+                        self.box(slide, sx - .16, stat_y, .008, .72, self.paper_line())
             if page.get("exception"):
                 ey = 6.22
                 self.box(slide, px, ey, pw, .44, "FFF3E9", rounded=True)
-                self.box(slide, px, ey, .05, .44, "B04A2A")
+                self.box(slide, px, ey, .05, .44, self.colors["accent"])
                 self.text(slide, "转人工", px + .18, ey + .12, .62, .18,
                           8.0, "accent", True)
                 self.text(slide, page["exception"], px + .86, ey + .10,
@@ -2027,7 +2138,7 @@ class DeckBuilder:
                               "muted", align=PP_ALIGN.CENTER)
                 for index, node in enumerate(nodes):
                     nx = px + index * (node_w + gap)
-                    self.box(slide, nx, flow_y, node_w, .36, "F6EEE4", rounded=True)
+                    self.box(slide, nx, flow_y, node_w, .36, self.soft_tint(), rounded=True)
                     self.text(slide, str(node), nx + .05, flow_y + .09, node_w - .10,
                               .18, 7.6, "text", True, align=PP_ALIGN.CENTER)
                     if index < n - 1:
@@ -2035,7 +2146,7 @@ class DeckBuilder:
                                   .12, .18, 7.2, "accent", True,
                                   align=PP_ALIGN.CENTER)
             elif page.get("strip"):
-                self.box(slide, px, 6.35, pw, .010, "D8C6B4")
+                self.box(slide, px, 6.35, pw, .010, self.paper_line())
                 labels = page["strip"][:3]
                 span = pw / len(labels)
                 for index, label in enumerate(labels):
@@ -2083,7 +2194,7 @@ class DeckBuilder:
             row_h = .82
             for i in range(len(items)):
                 if i % 2 == 0:
-                    self.box(slide, .55, top + .04 + i * row_h, 11.9, row_h - .02, "F6EEE4")
+                    self.box(slide, .55, top + .04 + i * row_h, 11.9, row_h - .02, self.soft_tint())
             tick_values = list(range(0, int(total), tick))
             if not tick_values or tick_values[-1] != int(total):
                 tick_values.append(int(total))
@@ -2153,20 +2264,20 @@ class DeckBuilder:
                 self.text(slide, page["source"], .65, 6.52, 4.55, .52, 8.5, "C9B3A0")
         elif layout == "state_gallery":
             items = page["items"]
-            self.box(slide, .60, 2.00, 7.15, 4.45, "B04A2A")
+            self.box(slide, .60, 2.00, 7.15, 4.45, self.colors["accent"])
             self.artwork(slide, items[0]["image"], .70, 2.10, 6.95, 4.25, radius=0.0)
             self.text(slide, "01", .60, 6.48, .7, .40, 22, "accent", True)
             self.text(slide, items[0]["title"], 1.28, 6.50, 6.4, .32, 17, "text", True)
             self.text(slide, items[0]["body"], 1.28, 6.78, 6.4, .22, 11, "muted")
             for idx, (y, item) in enumerate(((2.00, items[1]), (4.52, items[2])), start=1):
-                self.box(slide, 8.00, y, 4.70, 2.00, "B04A2A")
+                self.box(slide, 8.00, y, 4.70, 2.00, self.colors["accent"])
                 self.artwork(slide, item["image"], 8.06, y + .06, 4.58, 1.88, radius=0.0)
                 self.text(slide, f"0{idx+1}", 8.00, y + 2.04, .55, .28, 13, "accent", True)
                 self.text(slide, item["title"], 8.52, y + 2.02, 4.0, .26, 12.5, "text", True)
                 self.text(slide, item["body"], 8.52, y + 2.26, 4.0, .18, 8.8, "muted")
         elif layout == "state_band":
             items = page["items"]
-            self.box(slide, 0, 0, 13.333, 1.18, "FBF6EE")
+            self.box(slide, 0, 0, 13.333, 1.18, self.colors["panel"])
             self.text(slide, page["title"], .6, .28, 12.1, .52, 26, "text", True,
                       font=self.head_font)
             if page.get("subtitle"):
@@ -2177,26 +2288,26 @@ class DeckBuilder:
             self.artwork(slide, items[1]["image"], 8.2, top, 5.133, h2, radius=0.0)
             self.artwork(slide, items[2]["image"], 8.2, top + h2 + .04, 5.133, h2, radius=0.0)
             # left caption band
-            self.box(slide, 0, 6.02, 8.2, 1.0, "FBF6EE")
-            self.box(slide, 0, 6.02, 8.2, .018, "B04A2A")
+            self.box(slide, 0, 6.02, 8.2, 1.0, self.colors["panel"])
+            self.box(slide, 0, 6.02, 8.2, .018, self.colors["accent"])
             self.text(slide, "01", .55, 6.12, .7, .38, 20, "accent", True)
             self.text(slide, items[0]["title"], 1.28, 6.12, 6.5, .34, 18, "text", True)
             self.text(slide, items[0]["body"], 1.28, 6.46, 6.5, .26, 11.5, "muted")
             # right top band
-            self.box(slide, 8.2, 3.30, 5.133, .68, "FBF6EE")
-            self.box(slide, 8.2, 3.30, 5.133, .016, "B04A2A")
+            self.box(slide, 8.2, 3.30, 5.133, .68, self.colors["panel"])
+            self.box(slide, 8.2, 3.30, 5.133, .016, self.colors["accent"])
             self.text(slide, "02", 8.42, 3.38, .55, .28, 13, "accent", True)
             self.text(slide, items[1]["title"], 9.02, 3.36, 4.0, .26, 12.5, "text", True)
             self.text(slide, items[1]["body"], 9.02, 3.60, 4.0, .22, 9.5, "muted")
             # right bottom band
-            self.box(slide, 8.2, 6.34, 5.133, .68, "FBF6EE")
-            self.box(slide, 8.2, 6.34, 5.133, .016, "B04A2A")
+            self.box(slide, 8.2, 6.34, 5.133, .68, self.colors["panel"])
+            self.box(slide, 8.2, 6.34, 5.133, .016, self.colors["accent"])
             self.text(slide, "03", 8.42, 6.42, .55, .28, 13, "accent", True)
             self.text(slide, items[2]["title"], 9.02, 6.40, 4.0, .26, 12.5, "text", True)
             self.text(slide, items[2]["body"], 9.02, 6.64, 4.0, .22, 9.5, "muted")
         elif layout == "state_triptych":
             items = page["items"]
-            self.box(slide, 0, 0, 13.333, 1.32, "FBF6EE")
+            self.box(slide, 0, 0, 13.333, 1.32, self.colors["panel"])
             self.text(slide, page["title"], .6, .36, 12.1, .55, 28, "text", True,
                       font=self.head_font)
             if page.get("subtitle"):
@@ -2256,7 +2367,7 @@ class DeckBuilder:
             self.text(slide, "分钟", x1 + .02, 1.92, .4, .18, 8, "muted")
             for lane, y, label, hint, color in (
                     ("prep", 2.42, "提前备料", "可提前做", "B98A63"),
-                    ("stove", 4.05, "灶前", "连续操作", "B04A2A")):
+                    ("stove", 4.05, "灶前", "连续操作", self.colors["accent"])):
                 entries = [item for item in items if item.get("lane") == lane]
                 self.text(slide, label, .6, y - .04, 2.1, .30, 14, "text", True)
                 self.text(slide, hint, .6, y + .28, 2.1, .20, 9.5, "muted")
@@ -2276,7 +2387,7 @@ class DeckBuilder:
                               8.2, "FFF6EC")
                     cursor += minutes
             xh = x0 + span * 16 / total
-            self.box(slide, xh, 2.16, .012, 3.45, "B04A2A")
+            self.box(slide, xh, 2.16, .012, 3.45, self.colors["accent"])
             self.text(slide, "开火", xh - .18, 1.92, .5, .18, 8.5, "accent", True,
                       align=PP_ALIGN.CENTER)
             self.text(slide, "16", .6, 5.62, .75, .55, 28, "accent", True)
@@ -2291,7 +2402,7 @@ class DeckBuilder:
             self.artwork(slide, items[0]["image"], .6, top, 7.55, 4.38, radius=0.0)
             self.artwork(slide, items[1]["image"], 8.40, top, 4.30, 1.98, radius=0.0)
             self.artwork(slide, items[2]["image"], 8.40, 4.60, 4.30, 1.84, radius=0.0)
-            self.box(slide, 8.24, top, .012, 4.38, "D8C6B4")
+            self.box(slide, 8.24, top, .012, 4.38, self.paper_line())
             self.text(slide, f"01  {items[0]['title']}", .6, 6.46, 7.55, .31, 17, "accent", True)
             self.text(slide, items[0]["body"], .6, 6.80, 7.55, .22, 12, "muted")
             self.text(slide, f"02  {items[1]['title']}", 8.40, 4.08, 4.30, .26, 14, "accent", True)
@@ -2321,7 +2432,7 @@ class DeckBuilder:
                 row = index // 2
                 x = 6.28 + col * 3.12
                 y = 1.98 + row * 1.62
-                card_fill = ("FFFDF8", "F2E7D9", "E8EFE9", "F6EEE4")[(row * 2 + col) % 4]
+                card_fill = ("FFFDF8", "F2E7D9", "E8EFE9", self.soft_tint())[(row * 2 + col) % 4]
                 self.box(slide, x, y, 2.98, 1.46, card_fill)
                 self.box(slide, x, y, .05, 1.46, "accent")
                 if has_point:
@@ -2384,7 +2495,7 @@ class DeckBuilder:
                 self.text(slide, item["title"], x + .48, 4.86, 3.3, .28, 14, "text", True)
                 for row_index, row in enumerate(item["rows"][:4]):
                     ry = 5.22 + row_index * .38
-                    self.box(slide, x, ry, 3.82, .008, "D8C6B4")
+                    self.box(slide, x, ry, 3.82, .008, self.paper_line())
                     self.text(slide, row.get("label", ""), x, ry + .05, .95, .18,
                               7.8, "accent", True)
                     self.text(slide, row.get("value", ""), x + 1.0, ry + .02, 2.75, .24,
@@ -2420,7 +2531,7 @@ class DeckBuilder:
                 self.text(slide, page["body"], tx, page.get("body_y", 1.98), tw, .62, 11.5, muted)
             for index, item in enumerate(items):
                 iy = 2.82 + index * 1.05
-                self.box(slide, tx, iy, tw, .009, "D8C6B4")
+                self.box(slide, tx, iy, tw, .009, self.paper_line())
                 self.text(slide, f"{index + 1:02d}", tx, iy + .10, .45, .25,
                           9, accent, True)
                 self.text(slide, item["title"], tx + .50, iy + .08, 3.9, .26,
@@ -2452,7 +2563,7 @@ class DeckBuilder:
                           8.5, muted)
                 if isinstance(stat.get("share"), (int, float)):
                     ratio = min(1.0, max(0.0, float(stat["share"])))
-                    self.box(slide, 9.55, sy + .78, 2.90, .035, "D8C6B4")
+                    self.box(slide, 9.55, sy + .78, 2.90, .035, self.paper_line())
                     self.box(slide, 9.55, sy + .78, max(.2, 2.90 * ratio), .035, accent)
             flow = page.get("flow") or []
             if flow:
@@ -2483,7 +2594,7 @@ class DeckBuilder:
                 if index < 2:
                     self.text(slide, "→", x + 2.40, 2.58, .30, .26, 14, "accent", True,
                               align=PP_ALIGN.CENTER)
-            self.box(slide, .62, 3.78, 7.30, .010, "D8C6B4")
+            self.box(slide, .62, 3.78, 7.30, .010, self.paper_line())
             self.text(slide, "回写：执行证据只改未执行部分", 5.10, 3.82, 3.3, .18, 7.5, "muted")
             self.box(slide, 5.50, 3.70, .010, .28, "accent")
             self.box(slide, 2.00, 3.70, 3.50, .010, "accent")
@@ -2507,7 +2618,7 @@ class DeckBuilder:
         elif layout == "diagram_page":
             self.box(slide, 0, 0, 13.333, 7.5, "bg")
             self.artwork(slide, page["image"], .0, .22, 9.25, 7.02, radius=0.0)
-            self.box(slide, 9.18, 0, 4.153, 7.5, "FBF6EE")
+            self.box(slide, 9.18, 0, 4.153, 7.5, self.colors["panel"])
             self.box(slide, 9.18, 0, .05, 7.5, "accent")
             self.text(slide, str(page.get("kicker", "技术路线 / ROUTE")).upper(), 9.50, .62, 3.4, .22, 9, "accent", True)
             self.text(slide, page["title"], 9.50, .98, 3.35, 1.15, page.get("title_size", 22), "text", True, font=self.head_font)
@@ -2535,7 +2646,7 @@ class DeckBuilder:
                 self.text(slide, label, cx + .48, 1.38, 2.95, .42, 10.5, "text", True)
                 if index < 2:
                     self.text(slide, "→", cx + 3.60, 1.47, .42, .22, 12, "accent", True)
-            self.box(slide, .65, 2.08, 11.95, .008, "D8C6B4")
+            self.box(slide, .65, 2.08, 11.95, .008, self.paper_line())
             self.text(slide, "状态与异常反馈，更新长程计划", 4.55, 2.11, 4.2, .18, 7.5, "muted")
             self.text(slide, "任务", 4.34, 1.45, .32, .18, 7.0, "muted")
             self.text(slide, "证据", 8.44, 1.45, .32, .18, 7.0, "muted")
@@ -2576,7 +2687,7 @@ class DeckBuilder:
                         self.box(slide, x + 1.38, ty + .09, 1.36, .008, "2F5597" if solid else "B8C4D4")
                     self.text(slide, "— 约束通过    - - 候选待核", x + .18, 5.30, 3.3, .14, 6.0, "muted")
                 elif page.get("detailed") and kind == "state":
-                    self.box(slide, x + .18, 4.22, 3.45, .010, "D8C6B4")
+                    self.box(slide, x + .18, 4.22, 3.45, .010, self.paper_line())
                     for idx, label in enumerate(["e1", "e2", "e3"]):
                         ex = x + .38 + idx * 1.30
                         self.box(slide, ex, 4.12, .18, .18, "FFFFFF", rounded=True)
@@ -2631,12 +2742,12 @@ class DeckBuilder:
             if chips:
                 for index, chip in enumerate(chips[:3]):
                     cx = .80 + index * 1.66
-                    self.box(slide, cx, 4.92, 1.52, .32, "F3E4D5", rounded=True)
+                    self.box(slide, cx, 4.92, 1.52, .32, self.soft_tint(), rounded=True)
                     self.text(slide, chip, cx + .08, 4.99, 1.36, .18, 8.2,
                               "text", True, align=PP_ALIGN.CENTER)
             if page.get("meta"):
                 self.text(slide, page["meta"], .80, 5.78, 5.8, .28, 11, "muted")
-            self.box(slide, .80, 5.55, 5.8, .010, "D8C6B4")
+            self.box(slide, .80, 5.55, 5.8, .010, self.paper_line())
         elif layout == "figure_annotated":
             items = page["items"]
             self.box(slide, .60, 1.95, 7.35, 4.85, "FFFFFF")
@@ -2667,11 +2778,11 @@ class DeckBuilder:
                                   3.8, .20, 8, "muted")
             if page.get("bridge"):
                 # A common-gap band closes the three independent rows.
-                self.box(slide, 7.95, 1.98, .012, 3.75, "D8C6B4")
+                self.box(slide, 7.95, 1.98, .012, 3.75, self.paper_line())
                 for tick in range(3):
-                    self.box(slide, 7.95, 2.22 + tick * 1.55, .10, .012, "D8C6B4")
+                    self.box(slide, 7.95, 2.22 + tick * 1.55, .10, .012, self.paper_line())
                 by = 6.29
-                self.box(slide, 8.02, by, 4.58, .44, "F3E4D5", rounded=True)
+                self.box(slide, 8.02, by, 4.58, .44, self.soft_tint(), rounded=True)
                 self.box(slide, 8.02, by, .05, .44, "accent")
                 self.text(slide, "共同缺口", 8.18, by + .08, .85, .16, 7.2,
                           "accent", True)
@@ -2696,7 +2807,7 @@ class DeckBuilder:
                           15, "text", True)
                 for row_index, row in enumerate(item["rows"][:4]):
                     ry = 4.20 + row_index * .50
-                    self.box(slide, x, ry, 3.80, .008, "D8C6B4")
+                    self.box(slide, x, ry, 3.80, .008, self.paper_line())
                     self.text(slide, row.get("label", ""), x, ry + .08, 1.05, .20,
                               8.2, "accent", True)
                     self.text(slide, row.get("value", ""), x + 1.10, ry + .05, 2.70, .28,
@@ -2750,11 +2861,11 @@ class DeckBuilder:
                           9.5, "muted" if rail_light else "E8D8C4")
                 if isinstance(stat.get("share"), (int, float)):
                     ratio = min(1.0, max(0.0, float(stat["share"])))
-                    self.box(slide, 8.55, sy + .78, 3.5, .035, "D8C6B4" if rail_light else "3A4655")
+                    self.box(slide, 8.55, sy + .78, 3.5, .035, self.paper_line() if rail_light else "3A4655")
                     self.box(slide, 8.55, sy + .78, max(.2, 3.5 * ratio), .035, accent if rail_light else gold)
                 if index < 2:
                     self.box(slide, 8.55, sy + .84, 3.5, .008,
-                             "D8C6B4" if rail_light else "3A4655")
+                             self.paper_line() if rail_light else "3A4655")
             if page.get("quote"):
                 self.text(slide, page["quote"], 8.55, 5.35, 3.6, .70, 10.5,
                           "muted" if rail_light else "E8D8C4")
@@ -2765,7 +2876,7 @@ class DeckBuilder:
                     self.box(slide, cx, 6.03, .05, .32, accent)
                     self.text(slide, chip, cx + .14, 6.10, 1.95, .18, 8.0, "text")
             if page.get("bottom"):
-                self.box(slide, .70, 6.55, 11.90, .48, "F1E7DB")
+                self.box(slide, .70, 6.55, 11.90, .48, self.soft_tint())
                 self.box(slide, .70, 6.55, .045, .48, accent)
                 self.text(slide, page["bottom"], .92, 6.65, 11.45, .26, 10.5, "text")
         elif layout == "matrix":
@@ -2800,11 +2911,20 @@ class DeckBuilder:
                 self.text(slide, page["bottom"], .92, 6.65, 11.45, .26, 10.5, "FFFFFF")
         elif layout == "academic_table":
             headers, rows = page["headers"], page["rows"]
+            # A summary band under the table (2-3 calibration notes) needs its
+            # own vertical lane, so the rows tighten instead of pushing it off.
+            summary = [str(item) for item in (page.get("summary") or [])][:3]
+            row_h = .78 if summary else .95
+            bottom_rule = 2.20 + .55 + row_h * len(rows)
             if page.get("caption"):
                 self.text(slide, page["caption"], .60, 1.92, 12.1, .24, 9, "muted", True)
-            self.box(slide, .60, 2.12, 12.1, .022, "1C2B3A")
+            self.box(slide, .60, 2.12, 12.1, .022, self.colors["text"])
+            # A quiet tier rail makes the table read as a progression instead of
+            # a pasted grid; it is independent of the cell fills.
+            self.box(slide, .565, 2.18, .045, bottom_rule - 2.18, "accent")
             table = slide.shapes.add_table(len(rows) + 1, len(headers), Inches(.6),
-                                           Inches(2.20), Inches(12.1), Inches(4.35)).table
+                                           Inches(2.20), Inches(12.1),
+                                           Inches(.55 + row_h * len(rows))).table
             table.first_row = False
             table.horz_banding = False
             table.vert_banding = False
@@ -2816,7 +2936,7 @@ class DeckBuilder:
                 table.columns[index].width = Inches(12.1 * weight / total)
             table.rows[0].height = Inches(.55)
             for row_index in range(1, len(table.rows)):
-                table.rows[row_index].height = Inches(.95)
+                table.rows[row_index].height = Inches(row_h)
 
             def clear_academic_borders(cell):
                 tc_pr = cell._tc.get_or_add_tcPr()
@@ -2830,19 +2950,19 @@ class DeckBuilder:
                     ln.set("w", "0")
                     ln.append(tc_pr.makeelement(qn("a:noFill"), {}))
 
-            body_top, row_h = 2.75, .95
+            body_top = 2.75
             for row_index, row in enumerate([headers] + rows):
                 for column_index, value in enumerate(row):
                     cell = table.cell(row_index, column_index)
                     cell.fill.solid()
                     if column_index == len(headers) - 1:
-                        cell.fill.fore_color.rgb = RGBColor.from_string("F1E7DB")
+                        cell.fill.fore_color.rgb = RGBColor.from_string(self.soft_tint())
                     elif row_index == 0:
                         cell.fill.fore_color.rgb = RGBColor.from_string("E8F0ED")
                     elif column_index == 0:
-                        cell.fill.fore_color.rgb = RGBColor.from_string("FBF6EE")
+                        cell.fill.fore_color.rgb = RGBColor.from_string(self.colors["panel"])
                     elif row_index % 2 == 0:
-                        cell.fill.fore_color.rgb = RGBColor.from_string("FBF6EE")
+                        cell.fill.fore_color.rgb = RGBColor.from_string(self.colors["panel"])
                     else:
                         cell.fill.fore_color.rgb = RGBColor.from_string("FFFFFF")
                     cell.margin_left = Inches(.10)
@@ -2888,11 +3008,15 @@ class DeckBuilder:
                                     run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
                     clear_academic_borders(cell)
             # Three-line rules + a left tier rail that reads as 01→04.
-            self.box(slide, .60, 2.75, 12.1, .010, "1C2B3A")
-            self.box(slide, .60, 6.55, 12.1, .022, "1C2B3A")
+            self.box(slide, .60, 2.75, 12.1, .010, self.colors["text"])
+            self.box(slide, .60, bottom_rule, 12.1, .022, self.colors["text"])
             for row_index in range(1, len(rows) + 1):
                 self.box(slide, .60, body_top + (row_index - 1) * row_h,
                          .045, row_h, "accent")
+            for index, note in enumerate(summary):
+                ny = bottom_rule + .14 + index * .20
+                self.box(slide, .60, ny + .055, .055, .055, "accent")
+                self.text(slide, note, .74, ny, 11.86, .17, 8.5, "muted")
         elif layout == "table":
             data_headers, data_rows = page["headers"], page["rows"]
             headers = ["№"] + list(data_headers)
@@ -2912,7 +3036,7 @@ class DeckBuilder:
                 table.columns[index].width = Inches(11.55 * weight / total)
             table.rows[0].height = Inches(.55)
             for row_index in range(1, len(table.rows)):
-                table.rows[row_index].height = Inches(.95)
+                table.rows[row_index].height = Inches(row_h)
 
             def clear_borders(cell):
                 tc_pr = cell._tc.get_or_add_tcPr()
@@ -2932,9 +3056,9 @@ class DeckBuilder:
                     cell.fill.solid()
                     if column_index == 0:
                         cell.fill.fore_color.rgb = RGBColor.from_string(
-                            "1C2B3A" if row_index == 0 else self.colors["accent"])
+                            self.colors["text"] if row_index == 0 else self.colors["accent"])
                     elif row_index == 0:
-                        cell.fill.fore_color.rgb = RGBColor.from_string("1C2B3A")
+                        cell.fill.fore_color.rgb = RGBColor.from_string(self.colors["text"])
                     else:
                         cell.fill.fore_color.rgb = RGBColor.from_string(
                             "F2F6FA" if row_index % 2 else "FFFFFF")
@@ -2959,12 +3083,12 @@ class DeckBuilder:
                             run._r.get_or_add_rPr().append(
                                 run._r.makeelement(qn("a:ea"), {"typeface": self.font}))
                     clear_borders(cell)
-            self.box(slide, .60, 6.44, 12.1, .010, "D8C6B4")
+            self.box(slide, .60, 6.44, 12.1, .010, self.paper_line())
         if page.get("source") and layout not in {"glass_overlay", "kpi_showcase",
                                                  "image_annotated", "ingredient_board",
                                                  "ingredient_split", "image_panel",
                                                  "image_band", "image_mosaic", "briefing", "matrix",
-                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars", "glass_canvas", "flow_chart", "route_map", "blocks", "frost_number_panel"}:
+                                                 "figure_annotated", "compare_grid", "evidence_grid", "diagonal_compare", "heat_bars", "glass_canvas", "flow_chart", "route_map", "blocks", "frost_number_panel", "image_panel_strip", "chapter_band", "chapter_split"}:
             self.text(slide, page["source"], .6, 6.7, 12.1, .27, 11, "muted")
 
     def chart_page(self, slide, page, top=1.5, height=5.15):
@@ -3581,6 +3705,28 @@ class DeckBuilder:
             raise ValueError(f"unsupported probation layout: {layout}")
 
 
+def clamp_min_font(slide, floor: float = 8.0) -> None:
+    """Raise every explicit run size to the projector floor.
+
+    Micro-labels inside mechanism diagrams (6-7pt) are unreadable once the deck
+    is projected, so the engine enforces an 8pt floor on text boxes and table
+    cells instead of letting a layout slip below it.
+    """
+    frames = []
+    for shape in slide.shapes:
+        if getattr(shape, "has_text_frame", False):
+            frames.append(shape.text_frame)
+        if getattr(shape, "has_table", False):
+            for row in shape.table.rows:
+                for cell in row.cells:
+                    frames.append(cell.text_frame)
+    for frame in frames:
+        for paragraph in frame.paragraphs:
+            for run in paragraph.runs:
+                if run.font.size is not None and run.font.size.pt < floor:
+                    run.font.size = Pt(floor)
+
+
 def build(spec: dict, base: Path, output: Path) -> None:
     """Validate and build; only spec assets are read and output is written."""
     validate(spec, base)
@@ -3591,7 +3737,7 @@ def build(spec: dict, base: Path, output: Path) -> None:
                               "image_statement", "split_diagonal", "glass_overlay",
                               "quote_stage", "kpi_showcase", "cutout_statement",
                               "image_annotated", "image_arch",
-                              "frost_number_panel"}:
+                              "frost_number_panel", "chapter_band", "chapter_split"}:
             slide = builder.blank(page, index)
         else:
             slide = builder.new(page, index)
@@ -3600,6 +3746,7 @@ def build(spec: dict, base: Path, output: Path) -> None:
         slide._element.cSld.set("name", page.get("id", f"P{index:02d}"))
         builder.compose(slide, page)
         builder.ensure_page_number(slide, index, page)
+        clamp_min_font(slide)
         effect = spec["meta"].get("transition")
         if effect:
             builder.transition(slide, effect)
