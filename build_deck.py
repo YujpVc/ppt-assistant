@@ -1912,25 +1912,58 @@ class DeckBuilder:
             width = (12.10 - .25 * (n - 1)) / n
             for index, item in enumerate(items):
                 x = .60 + index * (width + .25)
-                self.box(slide, x, 2.15, width, 1.05, page.get("pillar_header", self.soft_tint()))
-                self.box(slide, x, 2.15, width, .035, "accent")
-                self.text(slide, f"{index + 1:02d}", x + .18, 2.28, .55, .22,
+                head_y = 1.85 if n == 4 else 2.15
+                self.box(slide, x, head_y, width, 1.05, page.get("pillar_header", self.soft_tint()))
+                self.box(slide, x, head_y, width, .035, "accent")
+                self.text(slide, f"{index + 1:02d}", x + .18, head_y + .13, .55, .22,
                           9, "accent", True)
-                self.text(slide, item["title"], x + .18, 2.56, width - .36, .55,
+                self.text(slide, item["title"], x + .18, head_y + .41, width - .36, .55,
                           16 if n == 4 else 18, "text", True)
-                self.text(slide, item["body"], x + .18, 3.42, width - .36,
-                          1.40 if n == 4 else 2.10,
+                self.text(slide, item["body"], x + .18, 3.12 if n == 4 else 3.42,
+                          width - .36, 1.30 if n == 4 else 2.10,
                           12.5 if n == 4 else 14, "muted")
                 if item.get("foot"):
-                    self.text(slide, item["foot"], x + .18,
-                              4.82 if n == 4 else 5.62, width - .36, .25,
-                              8.5 if n == 4 else 9, "accent", True)
-                self.box(slide, x, 6.02, width, .012, self.paper_line())
+                    if n == 4:
+                        # 口径 belongs to the column base: a tinted rail closes
+                        # each pillar, instead of a hairline floating below the
+                        # whole page with nothing under it.
+                        self.box(slide, x, 4.62, width, .34, "tint", rounded=True)
+                        self.text(slide, item["foot"], x + .12, 4.62, width - .24,
+                                  .34, 8.5, "accent", True,
+                                  anchor=MSO_ANCHOR.MIDDLE)
+                    else:
+                        self.text(slide, item["foot"], x + .18, 5.62,
+                                  width - .36, .25, 9, "accent", True)
+                if n != 4:
+                    self.box(slide, x, 6.02, width, .012, self.paper_line())
+            if n == 4:
+                # Optional grouping bracket: a stage ladder and a control arm
+                # must not be read as four equal rungs of one ladder.
+                for group in (page.get("pillar_groups") or []):
+                    first = max(0, int(group.get("from", 1)) - 1)
+                    last = min(n - 1, int(group.get("to", n)) - 1)
+                    gx0 = .60 + first * (width + .25)
+                    gx1 = .60 + last * (width + .25) + width
+                    gy = float(group.get("y", 1.64))
+                    self.box(slide, gx0, gy, gx1 - gx0, .014, "accent")
+                    self.box(slide, gx0, gy, .014, .17, "accent")
+                    self.box(slide, gx1 - .014, gy, .014, .17, "accent")
+                    if group.get("label"):
+                        self.text(slide, str(group["label"]), gx0, gy - .25,
+                                  gx1 - gx0, .20, 8.5, "accent", True,
+                                  align=PP_ALIGN.CENTER)
             if page.get("bottom"):
                 if n == 4:
-                    self.box(slide, .65, 4.82, .8, .03, "accent")
-                    self.text(slide, page["bottom"], .65, 5.05, 11.8, .80,
-                              18, "text", True, font=self.head_font)
+                    # Terminal band: the conclusion sits in its own closing
+                    # block at the page foot, separated from the 口径 rails by
+                    # a real gap so the two do not read as one paragraph.
+                    bottom = str(page["bottom"])
+                    size = 18 if len(bottom) <= 52 else (16 if len(bottom) <= 92 else 14)
+                    self.box(slide, .60, 5.44, 12.10, .95, "panel")
+                    self.box(slide, .60, 5.44, .055, .95, "accent")
+                    self.text(slide, page["bottom"], .86, 5.44, 11.55, .95,
+                              size, "text", True, font=self.head_font,
+                              anchor=MSO_ANCHOR.MIDDLE)
                 else:
                     self.text(slide, page["bottom"], .65, 6.28, 12.0, .38,
                               13, "muted")
@@ -2030,14 +2063,22 @@ class DeckBuilder:
                 my = float(point.get("y", .5)) * 7.5
                 dot = self.circle(slide, mx - .13, my - .13, .26, .26, "FFFFFF")
                 self.frame(dot, "accent", 1.0)
-                self.text(slide, f"{index + 1:02d}", mx - .13, my - .13, .26, .26,
+                self.text(slide, str(point.get("mark") or f"{index + 1:02d}"),
+                          mx - .13, my - .13, .26, .26,
                           6.4, "accent", True, align=PP_ALIGN.CENTER,
                           anchor=MSO_ANCHOR.MIDDLE)
                 if point.get("label"):
-                    lw = min(2.35, image_w - (mx - image_x) - .28)
-                    self.box(slide, mx + .17, my - .11, lw, .24, self.colors["text"], rounded=True)
-                    self.text(slide, str(point["label"]), mx + .24, my - .11,
-                              lw - .14, .24, 7.0, "FFFFFF", True,
+                    label = str(point["label"])
+                    lw = min(2.35, .115 * len(label) + .22)
+                    # Points near the panel's outer edge would clip a right-hand
+                    # pill to a sliver; flip it to the left of the dot instead.
+                    if mx - image_x + .17 + lw > image_w - .10:
+                        lx = mx - .17 - lw
+                    else:
+                        lx = mx + .17
+                    self.box(slide, lx, my - .13, lw, .28, self.colors["text"], rounded=True)
+                    self.text(slide, label, lx + .07, my - .13,
+                              lw - .14, .28, 9.0, "FFFFFF", True,
                               anchor=MSO_ANCHOR.MIDDLE)
             if page.get("side_label"):
                 self.box(slide, image_x + .22, .58, 1.58, .28, "FFFFFF")
