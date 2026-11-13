@@ -41,10 +41,12 @@ LAYOUTS = {"cover", "light_cover", "cards", "process", "architecture", "sequence
 THEMES = {
     "midnight": {"bg": "0B1324", "panel": "17243B", "tint": "1B3147",
                  "soft": "223A50", "text": "F7FBFF", "muted": "B2C2D9",
-                 "accent": "48CAE4"},
+                 "accent": "48CAE4", "accent2": "F4A261",
+                 "accent3": "8AB6D6", "soft2": "2A2B20"},
     "paper": {"bg": "F4F6FA", "panel": "FFFFFF", "tint": "E8EFE9",
               "soft": "F2E7D9", "text": "15253F", "muted": "4D627A",
-              "accent": "176C88", "danger": "C0392B"},
+              "accent": "176C88", "accent2": "A8763E",
+              "accent3": "5B6B7A", "soft2": "EEE3D2", "danger": "C0392B"},
 }
 
 
