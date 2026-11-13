@@ -12,6 +12,10 @@ if [[ $# -lt 1 ]]; then
   exit 64
 fi
 
+# DSH's Tauri shell may inject PYTHONHOME/PYTHONPATH for its own runtime;
+# those poison standalone Python/conda installs before encodings can load.
+unset PYTHONHOME PYTHONPATH
+
 engine_root=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 script=$1
 shift

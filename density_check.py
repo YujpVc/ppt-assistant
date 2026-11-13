@@ -51,7 +51,23 @@ def module_count(page: dict) -> int:
 def checks(page: dict) -> list[str]:
     layout = page.get("layout", "")
     out: list[str] = []
-    if layout == "frost_number_panel":
+    if layout == "chapter_split":
+        if count(page.get("items")) < 3:
+            out.append("chapter_split: 至少 3 条章节点")
+        if not page.get("body"):
+            out.append("chapter_split: 需要一句短判断")
+        if text_len(page.get("body")) > 90:
+            out.append("chapter_split: 主正文超过 90 字")
+        if not page.get("source"):
+            out.append("chapter_split: 需要来源/依据")
+    elif layout == "chapter_band":
+        if count(page.get("items")) < 3:
+            out.append("chapter_band: 至少 3 条章节点")
+        if text_len(page.get("body")) > 90:
+            out.append("chapter_band: 主正文超过 90 字")
+        if not page.get("source"):
+            out.append("chapter_band: 需要来源/依据")
+    elif layout == "frost_number_panel":
         if count(page.get("items")) < 3:
             out.append("frost_number_panel: 至少 3 条短标签")
         if text_len(page.get("body")) > 90:
@@ -236,6 +252,9 @@ def checks(page: dict) -> list[str]:
             out.append(f"frost_number_panel: 章节过渡文字量 {chars} 字，低于 150")
         if modules < 4:
             out.append(f"frost_number_panel: 信息模块 {modules} 个，低于 4（页题 + 判断句 + 3 条标签）")
+    elif layout in {"chapter_band", "chapter_split", "frost_number_panel"}:
+        if chars < 100:
+            out.append(f"章节页: 页面文字量 {chars} 字，低于 100")
     elif layout not in {"cover", "closing"}:
         if chars < 220:
             out.append(f"内容密度: 页面文字量 {chars} 字，低于 220")
@@ -265,6 +284,28 @@ def main() -> int:
                                   if isinstance(b, dict)}))
             if kinds:
                 sigs.append(kinds)
+    # Individually generated parts tend to pick the same default twice. Treat
+    # visually-related layouts as one family so two "image_panel" pages cannot
+    # silently become the deck's default pair.
+    family_of = {
+        "image_panel": "image_panel",
+        "image_panel_strip": "image_panel",
+        "glass_overlay": "glass",
+        "glass_canvas": "glass",
+        "figure_annotated": "image_annotated",
+        "image_annotated": "image_annotated",
+    }
+    family_counts = {}
+    for page in spec.get("slides", []):
+        family = family_of.get(page.get("layout"))
+        if family:
+            family_counts[family] = family_counts.get(family, 0) + 1
+    for family, n in family_counts.items():
+        if n > 1:
+            problems.setdefault("deck layout family", []).append(
+                f"{family} 家族用了 {n} 页；同族最多 1 页，换 figure_annotated/image_band/glass_canvas 等不同结构"
+            )
+
     blocks_pages = len([p for p in spec.get("slides", []) if p.get("layout") == "blocks"])
     if blocks_pages > 4:
         problems["deck blocks"] = ["blocks 用了 {} 页，超过 4 页；至少换回 2 页侧图清单/四道闸/玻璃/表格原型".format(blocks_pages)]

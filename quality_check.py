@@ -64,6 +64,18 @@ def inspect(path: Path) -> dict:
                 "diagram_shapes": diagram_shapes,
                 "picture_coverage": round(picture_area / slide_area, 3) if slide_area else 0,
                 "shapes": len(slide.shapes),
+                "min_font": min(
+                    [run.font.size.pt for sh in slide.shapes
+                     if getattr(sh, "has_text_frame", False)
+                     for para in sh.text_frame.paragraphs for run in para.runs
+                     if run.font.size is not None]
+                    + [run.font.size.pt for sh in slide.shapes
+                       if getattr(sh, "has_table", False)
+                       for row in sh.table.rows for cell in row.cells
+                       for para in cell.text_frame.paragraphs for run in para.runs
+                       if run.font.size is not None]
+                    or [0]
+                ),
                 "page_number": any(getattr(sh, "name", "") == "chrome:page" for sh in slide.shapes),
             }
         )
@@ -115,6 +127,10 @@ def failures(report: dict) -> list[str]:
                 f"仅检测到 {report['layout_signatures']} 种页面结构，至少需要 3 种"
             )
         for item in report["slide_stats"]:
+            if item.get("min_font") and item["min_font"] < 7.9:
+                problems.append(
+                    f"第 {item['slide']} 页最小字号 {item['min_font']:.1f}pt，低于 8pt；投影会看不清"
+                )
             if not item.get("page_number"):
                 problems.append(f"第 {item['slide']} 页没有页码；保存前必须补 chrome:page")
 
