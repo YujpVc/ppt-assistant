@@ -101,10 +101,6 @@ bash run_py.sh gen_image.py --prompt-file hero.txt --out assets/hero.png \
 | `matrix` | 2×2 四象限：每格编号 + 标题 + 状态 + 代表工作 + 下一步 | `items[4]{title,body,note,tag,value}` `bottom` |
 | `sequence` | 之字形主轴：3–4 步上下交替，适合机制/流程 | `items[3–4]{title,body,foot}` `bottom` |
 | `pillars` | 3–4 根深色柱头 + 纸面正文，适合验收/并列机制 | `items[3–4]{title,body,foot}` `bottom` |
-| `state_overview` | 共享状态 bus + 规划/技能/安全三块不等宽区域，S4 回写 | `steps` `step_fields` `state_reads` `items[3]` `writeback` `source` |
-| `task_swimlane` | 任务/设备/机器人三泳道，第 4 列是判定闸 | `lanes[3]` `items[4]` `dep_labels[2]` `source` |
-| `safety_mechanism` | 约束量表 + 分阶段导纳 + 修正/停机分支 | `items[3]{title,body,note}` `steps[3]` `branches[2]` `source` |
-| `ledger_rails` | 四行状态账本 + A/B 双指标轨 | `items[4]` `rails[2]` `branches[2]` `ledger_fields` `rewrite_chip` `source` |
 
 学术/基金 deck 的总体路线优先用它重画，不把论文总图整张贴进来。
 
