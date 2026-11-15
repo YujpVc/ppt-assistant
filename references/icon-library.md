@@ -17,3 +17,6 @@
 - 图标必须指向机制（如“抓取/交接”旁边放 gripper，“安全”旁边放 shield），不能当角落装饰。
 - 用 `blocks.image` 或 custom builder 的 `artwork()` 直接放；不要用 emoji 代替图标。
 - 同一页图标线宽/尺寸一致；不要 8 个图标铺成图标墙。
+
+- `pipette.png`：移液、分液、液体转移
+- `gripper_clear.png`：平行两指夹爪，优先于旧 gripper

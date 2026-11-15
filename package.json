@@ -48,8 +48,7 @@
     "layout_ledger.py",
     "density_check.py",
     "references",
-    "./lib/list-agents-fallback.js",
-    "palette_router.py"
+    "./lib/list-agents-fallback.js"
   ],
   "dsh": {
     "bundle": {

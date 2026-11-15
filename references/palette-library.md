@@ -35,13 +35,3 @@
 | 雾灰·藏蓝 | B58A55 | 6A7F99 | 暖点给异常，冷点给验证 |
 | 米纸·橄榄 | B08A4F | 7A8465 | 暖点给时间，冷点给记忆 |
 | 冷白·钴蓝 | C08A4E | 7C8FA8 | 暖点给人工，冷点给安全 |
-
-## 路由：不要每次手选同一套
-
-写 spec 前先跑：
-
-```bash
-bash <engine-root>/run_py.sh palette_router.py --seed "<本套 deck 标题>" --json
-```
-
-它按内容 seed + 上一套记录，返回一套 `name/colors`；把 `colors` 直接写进 `meta.colors`，`accent` 写进 `meta.accent`。只有内容/图片明确不适合时才换候选，并在报告里写理由。
