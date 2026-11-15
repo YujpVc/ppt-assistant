@@ -35,3 +35,19 @@
 | 雾灰·藏蓝 | B58A55 | 6A7F99 | 暖点给异常，冷点给验证 |
 | 米纸·橄榄 | B08A4F | 7A8465 | 暖点给时间，冷点给记忆 |
 | 冷白·钴蓝 | C08A4E | 7C8FA8 | 暖点给人工，冷点给安全 |
+
+## 内部语义色（在 3 个主角色之外）
+
+每套 palette 至少有这些角色；需要时写进 `meta.colors`，不要让每个框都随机换色。
+
+| 角色 | 默认（paper） | 用在哪 |
+|---|---|---|
+| primary / accent | 随 palette | 主链、主要机制、强调词 |
+| secondary / accent2 | A8763E 暖赭 | 人工、等待、不可逆、对照 |
+| tertiary / accent3 | 5B6B7A 冷灰 | 证据、记忆、结构、辅助轨 |
+| success | 3F6B57 | 已确认、闭环、通过 |
+| warning | B07D4F | 待确认、擦线、预警 |
+| danger | A33A2A | 停机、不重试、风险 |
+| info | 5B6B7A | 注释、边界、说明 |
+
+一套里最多同时出现 **primary + 2 个语义色**；success/warning/danger 只给状态，不给装饰。正文仍用 text/muted，彩色只做小面积标签、图标、状态点。

@@ -42,11 +42,15 @@ THEMES = {
     "midnight": {"bg": "0B1324", "panel": "17243B", "tint": "1B3147",
                  "soft": "223A50", "text": "F7FBFF", "muted": "B2C2D9",
                  "accent": "48CAE4", "accent2": "F4A261",
-                 "accent3": "8AB6D6", "soft2": "2A2B20"},
+                 "accent3": "8AB6D6", "soft2": "2A2B20",
+                 "success": "68B99A", "warning": "E0A458",
+                 "danger": "E26D5C", "info": "8AB6D6"},
     "paper": {"bg": "F4F6FA", "panel": "FFFFFF", "tint": "E8EFE9",
               "soft": "F2E7D9", "text": "15253F", "muted": "4D627A",
               "accent": "176C88", "accent2": "A8763E",
-              "accent3": "5B6B7A", "soft2": "EEE3D2", "danger": "C0392B"},
+              "accent3": "5B6B7A", "soft2": "EEE3D2",
+              "success": "3F6B57", "warning": "B07D4F",
+              "danger": "A33A2A", "info": "5B6B7A"},
 }
 
 
