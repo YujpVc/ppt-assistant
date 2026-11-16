@@ -44,3 +44,17 @@
 - 只剩明确记录、且用户接受的次级问题。
 
 每轮把审查结果落到 `visual_review_roundN.md`，deck 报告里写清轮次与状态。**审查不通过，不得把版本说成完成。**
+
+
+## 硬门
+
+交付/发布前必须运行：
+
+```bash
+bash <engine-root>/run_py.sh review_gate.py <output-dir>
+```
+
+- 没有 `visual_review_round*.md`：exit 2（zero shot 只是 draft）；
+- 最新审查还有“仍需改/不通过”：exit 2；
+- 只有最新审查“通过”才 exit 0，并写 `review_status.json`。
+- `review_waiver.md` 仅用于用户明确接受剩余次级问题，不能用来跳过第一轮审查。

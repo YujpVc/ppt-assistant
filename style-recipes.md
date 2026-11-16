@@ -165,6 +165,7 @@
 - **软排版**：短链居中，节点用胶囊/圆角，箭头短；区块用浅底、细线、圆角过渡；不要把每页切成同样大小的硬矩形。
 - **文字承载**：3–4 列文字块、闸门/并列机制如果缺少边界、浮在空白上，才加浅底 panel/圆角/细边；已有分隔线或留白时不要加卡。不要每页每块都加背景。
 - **审查闭环（强制）**：审查后必须回写 spec → 重建 → 重渲染 → 再开新一轮独立审查；最多 3 轮，直到没有“必须改”项或只剩用户接受的次级问题；审查不通过不交付。
+- **zero shot = draft（强制）**：zero shot 后至少跑 1 轮独立视觉审查；有必须改就回写→重建→再审；最后 `review_gate.py <output>` exit 0 才算完成，没有审查文件/最新仍“仍需改”直接 FAIL。
 - **独立视觉审查（强制）**：改完/zero shot/返工/发布前，另开全新子 agent 只读审图（contact + 每页全图），按 `references/visual-review.md` 报页码+位置+具体问题；审查不过不交付、不发布。
 - **同族最多 1 页**：`image_panel`/`strip`、`glass_overlay`/`glass_canvas`、`figure_annotated`/`image_annotated` 各算一个家族；第二页换 `figure_annotated`/`image_band`/`evidence_grid`。
 - **每页 2 候选**：先列 A/B 结构 + 理由，不因上一页惯性继续用同一族。

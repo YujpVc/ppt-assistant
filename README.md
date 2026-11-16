@@ -2,29 +2,96 @@
 
 DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 PowerPoint 生成和修改、自主 GPT 生图、满幅/渐变蒙版图片排版、结构质检、可选的联网配图与渲染审查。安装只插入 `ppt-assistant` 预设，不修改标准模式、模型路由、权限或现有会话。
 
-## 安装
+## 安装（照着做就行）
 
-**推荐：npm（一条命令，版本和依赖都由 registry 管）**
+### 0. 先确认 DSH 能用
+
+打开终端，先确认 `dsh` 命令可用：
 
 ```bash
-dsh plugin --profile web add @yujp_vc/ppt-assistant@2.0.20
-# 或跟最新版
-dsh plugin --profile web add @yujp_vc/ppt-assistant@latest
+dsh --version
 ```
 
-npm 页面：https://www.npmjs.com/package/@yujp_vc/ppt-assistant
+如果提示找不到命令，先安装/打开 DeepSeek Harness 桌面端，再继续。
 
-npm 装不上时再用 tgz 包，内容同源：
+### 1. 找到自己的 profile
 
-- **公网（GitHub）**
+DSH 把插件装在 profile 里，不同人可能叫 `desktop`、`web`。先列出来：
 
-  ```bash
-  dsh plugin --profile web add https://github.com/YujpVc/ppt-assistant/releases/download/v2.0.20/ppt-assistant-2.0.20.tgz
-  ```
+```bash
+# Linux
+ls ~/.dsh-linux/profiles
 
-装完新建会话并选择 **PPT 助手**。包名为 `@yujp_vc/ppt-assistant`；npm 是主通道，GitHub 是备用通道。社区市场收录申请见 [PR #10056](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/10056)，审核合并前无法在市场目录搜索到。
+# macOS / 其它安装方式（路径可能不同，以实际安装目录为准）
+ls ~/.dsh/profiles
+```
 
-此包保留原有 PPT 助手提示词和工具组合，同时附带 Python 生成引擎和通用主题资源；不复制用户配置、API 密钥、机构模板、机构 Logo、历史会话或生成的文件。提示词沿用原来的引擎发现规则：`deepseek-harness/ppt-assistant`、`~/ppt-assistant` 或安装后的 `node_modules/@yujp_vc/ppt-assistant`。
+输出里会看到目录名，例如：
+
+```text
+desktop
+web
+```
+
+后面命令里的 `<profile>` 就换成其中一个；本机当前是 `desktop`。
+
+### 2. 一条命令安装
+
+推荐 npm：
+
+```bash
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.25
+```
+
+把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
+
+> 不要用内网私库地址；那是内部仓库，需要内部账号登录。外部用户装 npm 即可。
+
+### 3. 重启 DSH
+
+完全退出 DSH，再重新打开。插件和提示词只在启动时加载。
+
+### 4. 新建会话，选「PPT 助手」
+
+新建一个会话，在模式菜单里选 **PPT 助手**；如果没看到，先检查第 2 步的 profile 是不是你正在用的那个。
+
+### 5. 装 Python 依赖（只装一次）
+
+```bash
+cd <profile目录>/node_modules/@yujp_vc/ppt-assistant
+python3 -m pip install -r requirements.txt
+```
+
+`<profile目录>` 例如 `~/.dsh-linux/profiles/desktop`。没有 Python 3.10+ 的话，PPT 生成会不可用；Office 预览还需要 dsh-office-kit / LibreOffice。
+
+### 6. 生图（可选）
+
+包**不带 API key**。要用生图，再自己配置：
+
+```bash
+mkdir -p ~/.config/ppt-assistant
+cp image-config.example.json ~/.config/ppt-assistant/image.json
+# 编辑 image.json，填自己的 api_base 和 api_key
+```
+
+不用生图就跳过，不影响 PPT 生成。
+
+### 7. 验证
+
+```bash
+dsh plugin --profile desktop list | grep ppt-assistant
+node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
+```
+
+应看到 `2.0.25`。
+
+### 卸载
+
+```bash
+dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
+```
+
+只删插件包，不动会话、世界、日记、模板和你的配置。
 
 ## 运行环境
 
