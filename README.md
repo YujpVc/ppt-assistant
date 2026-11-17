@@ -40,7 +40,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.26
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.27
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -83,7 +83,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.26`。
+应看到 `2.0.27`。
 
 ### 卸载
 
@@ -235,6 +235,19 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 - 稳定页名 `P01…` 写在 slide name 里，换序也不丢身份；台账按页列出标题、文字、数字、图片的变化。
 - 保护页被改、越权修改、缺页都会让命令以 exit 2 结束；交付时附上 `ledger.md`。
 - 数字逐位核对，不为了排版改精度；截图与交付文件版本必须一致。
+
+## 审查门（交付前）
+
+zero shot 只是初稿。至少开 1 轮独立只读视觉审查，在报告里写 `review-meta` 签名块（reviewer 不能等于 builder），有必须改就修完再开新一轮，最后跑：
+
+```bash
+bash <engine-root>/run_py.sh review_gate.py <output-dir>
+```
+
+- 没有 `visual_review_round*.md`：FAIL；
+- 没有 `review-meta` / reviewer=builder：FAIL（自审不算）；
+- 最新报告 `status` 不是 `pass` 或 must_fix 还有 `open`：FAIL；
+- 只有 exit 0 才能说完成/发布。
 
 ## 打包
 

@@ -1,16 +1,40 @@
 #!/usr/bin/env python3
-"""Refuse to call a deck final unless an independent visual review exists.
+"""Refuse to call a deck final unless a signed independent visual review exists.
 
-A zero shot is a draft. At least one `visual_review_round1.md` must be in the
-output directory, and the latest review must say it passed (or the user has
-explicitly accepted the remaining findings in `review_waiver.md`).
+The latest `visual_review_round*.md` / `visual_review_final.md` must contain a
+fenced `review-meta` JSON block:
 
-Usage:
-  bash run_py.sh review_gate.py <output-dir>
+```review-meta
+{"reviewer_session_id":"session-...", "builder_session_id":"session-...",
+ "status":"pass", "must_fix":[{"id":"M1","status":"fixed"}]}
+```
+
+Rules:
+- reviewer_session_id != builder_session_id
+- status must be `pass`
+- every must_fix item must be `fixed` (or `waived` + review_waiver.md)
+- no block = FAIL; self review / same id = FAIL
 """
 from __future__ import annotations
-import json, sys
+import json, re, sys
 from pathlib import Path
+
+META_RE = re.compile(r"```review-meta\s*(\{.*?\})\s*```", re.S)
+
+def fail(msg: str) -> int:
+    print("review_gate: FAIL — " + msg)
+    return 2
+
+def load_meta(path: Path):
+    text = path.read_text(encoding="utf-8", errors="replace")
+    m = META_RE.search(text)
+    if not m:
+        return None, text
+    try:
+        meta = json.loads(m.group(1))
+    except json.JSONDecodeError as e:
+        return {"_error": f"review-meta is not JSON: {e}"}, text
+    return meta, text
 
 def main() -> int:
     if len(sys.argv) != 2:
@@ -25,23 +49,41 @@ def main() -> int:
     final = out / "visual_review_final.md"
     waiver = out / "review_waiver.md"
     if not reviews:
-        print("review_gate: FAIL — zero shot is a draft; no visual_review_round*.md found")
-        print("next: spawn an independent read-only reviewer, then rebuild if it finds must-fix")
-        return 2
+        return fail("no visual_review_round*.md; zero shot is a draft and must be reviewed")
     latest = final if final.exists() and (not reviews or final.stat().st_mtime >= reviews[-1].stat().st_mtime) else reviews[-1]
-    text = latest.read_text(encoding="utf-8", errors="replace")
-    passed = ("通过" in text and "不通过" not in text and "仍需改" not in text)
-    if not passed and waiver.exists():
-        print(f"review_gate: WAIVED by {waiver.name}; latest={latest.name}")
-        return 0
-    if not passed:
-        print(f"review_gate: FAIL — latest review {latest.name} still has must-fix")
-        print("next: fix spec/builder, rebuild, render, then run a NEW independent review")
-        return 2
+    meta, text = load_meta(latest)
+    if meta is None:
+        return fail(f"{latest.name} has no ```review-meta``` block; self-written prose is not enough")
+    if "_error" in meta:
+        return fail(f"{latest.name}: {meta['_error']}")
+    reviewer = str(meta.get("reviewer_session_id") or "").strip()
+    builder = str(meta.get("builder_session_id") or "").strip()
+    if not reviewer or not builder:
+        return fail(f"{latest.name}: reviewer_session_id and builder_session_id are required")
+    if reviewer == builder:
+        return fail(f"{latest.name}: reviewer_session_id equals builder_session_id; self review is not independent")
+    if meta.get("status") != "pass":
+        return fail(f"{latest.name}: status={meta.get('status')!r}; must be 'pass'")
+    must = meta.get("must_fix") or []
+    if not isinstance(must, list):
+        return fail(f"{latest.name}: must_fix must be a list")
+    open_items = []
+    for item in must:
+        if not isinstance(item, dict):
+            open_items.append(str(item))
+            continue
+        status = str(item.get("status") or "open")
+        if status not in ("fixed", "waived"):
+            open_items.append(item.get("id") or "?")
+        if status == "waived" and not waiver.exists():
+            open_items.append(f"{item.get('id') or '?'} (waived without review_waiver.md)")
+    if open_items:
+        return fail(f"{latest.name}: must_fix not closed: {', '.join(map(str, open_items))}")
     report = {"status": "pass", "review": latest.name,
-              "rounds": [p.name for p in reviews]}
+              "reviewer_session_id": reviewer, "builder_session_id": builder,
+              "must_fix": must, "rounds": [p.name for p in reviews]}
     (out / "review_status.json").write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
-    print(f"review_gate: PASS — {latest.name}; rounds={len(reviews)}")
+    print(f"review_gate: PASS — {latest.name}; reviewer={reviewer}; rounds={len(reviews)}")
     return 0
 
 if __name__ == "__main__":

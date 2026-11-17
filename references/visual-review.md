@@ -58,3 +58,25 @@ bash <engine-root>/run_py.sh review_gate.py <output-dir>
 - 最新审查还有“仍需改/不通过”：exit 2；
 - 只有最新审查“通过”才 exit 0，并写 `review_status.json`。
 - `review_waiver.md` 仅用于用户明确接受剩余次级问题，不能用来跳过第一轮审查。
+
+## 审查报告签名（硬格式）
+
+每份 `visual_review_roundN.md` / `visual_review_final.md` 顶部必须带一个 fenced 块，由**审查者**填写：
+
+```review-meta
+{
+  "reviewer_session_id": "session-审查者自己的 id",
+  "builder_session_id": "session-构建者的 id",
+  "status": "pass",
+  "must_fix": [
+    {"id": "M1", "status": "fixed", "evidence": "P03 回边已接"},
+    {"id": "M2", "status": "waived", "evidence": "用户接受"}
+  ]
+}
+```
+
+- `reviewer_session_id` 必须存在，且不能等于 `builder_session_id`；相等直接 FAIL（自审不算独立审查）。
+- `status` 只有 `pass` 才能过；有必须改就写 `must-fix`，下一轮再改。
+- 每条 `must_fix` 只能 `fixed` 或 `waived`；`open` 没过完不能算完成。
+- `waived` 必须同时有 `review_waiver.md`。
+- 没有这个块，`review_gate.py` 直接 FAIL；主 agent 不能自己写这个块冒充审查者。
