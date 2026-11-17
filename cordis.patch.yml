@@ -89,6 +89,7 @@
                 - **元素不要重复**：同一组 card+flow+chips 不要超过 3 页；每页至少换一种要素（stat/quote/image/rule）或换宽窄。
                 - **短提示词自动展开（默认合同）**：用户只给“素材路径 + 生成这部分的 PPT”时，不追问；按 `references/short-brief.md` 自动定 8–12 页、写 7 行风格简报、列 3 套配色、选章节页、排机制图、生成/抠图、跑门禁与审查。把假设写进 design_brief，不阻塞。
                 - **用户给了本体/产品图**：既作为生图参考，也抠一张做平台页；场景图可自主生成并标“场景示意”；不要拿无关人形机器人替代。
+                - **每页写 skeleton（8+ 页强制）**：`skeleton` 是视觉骨架，不是 layout 名；例如 `numbered-columns / left-image-right-columns / state-ledger / chain / timeline / table`。8+ 页缺 skeleton，`rhythm_check.py` 直接 FAIL；不能靠换 layout 名躲重复。
                 - **重复骨架最多一对**：全 deck 同一 layout family 最多 2 页；出现**两对**重复（如 architecture×2 + evidence_grid×2）就算骨架重复，必须换掉其中一对。审查必须列非连续的同骨架对，不能只看相邻页。
                 - **跨页节奏是硬门**：8+ 页的 deck，单族版式不得连续 3 页；图片主导页 ≤60%；至少 2 页可编辑机制图（architecture / route_map / flow_chart / diagram_page / state_* / blocks graph）。写 spec 后跑 `bash <engine-root>/run_py.sh rhythm_check.py <spec.json>`，exit 2 先改骨架再谈美化。
                 - **机制图不能是照片+卡**：规程→任务、能力→调用、异常→恢复、验证→结果，至少要有一条带节点/边/回边或分支的可编辑图；照片只能辅助，不能替代。

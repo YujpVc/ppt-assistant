@@ -40,7 +40,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.30
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.31
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -83,7 +83,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.30`。
+应看到 `2.0.31`。
 
 ### 卸载
 
@@ -255,7 +255,7 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 bash <engine-root>/run_py.sh rhythm_check.py <spec.json>
 ```
 
-它会拦：连续 3 页同族、同一 family 出现两对重复、图片主导 >60%、机制图少于 2 页。exit 2 先改骨架，不要先美化。
+它会拦：8+ 页缺 skeleton、连续 3 页同族、同一 skeleton 出现两对重复、图片主导 >60%、机制图少于 2 页。exit 2 先改骨架，不要先美化。
 
 ## 审查门（交付前）
 

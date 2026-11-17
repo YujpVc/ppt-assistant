@@ -25,6 +25,13 @@
 - P09 验证与指标
 - P10 创新与交付
 
+## 3.5 每页声明 skeleton
+
+- spec 每页必须有 `"skeleton": "..."`，例如 `numbered-columns / left-image-right-columns / state-ledger / chain / timeline / table / split`。
+- 同一个 skeleton 全 deck 最多 2 页；两对重复 FAIL。
+- 不同 layout 名但同一 skeleton（P03 四栏、P04 三栏、P10 四栏）算重复，必须换骨。
+- `rhythm_check.py` 对 8+ 页缺 skeleton 直接 FAIL。
+
 ## 4. 机制图纪律
 
 - 8+ 页至少 2 页可编辑机制图；节点/边/回边/分支至少有一项，不是“框 + 标题”。

@@ -36,9 +36,12 @@ def main() -> int:
         print("rhythm_check: ok — <8 pages, rhythm gate skipped")
         return 0
     families, problems = [], []
+    missing_skeleton = [str(p.get("id") or i + 1) for i, p in enumerate(slides) if not str(p.get("skeleton") or "").strip()]
+    if missing_skeleton:
+        problems.append("8+ 页必须给每页写 skeleton（编号列/左图右列/状态账本/链式/时间轴），缺：" + "、".join(missing_skeleton))
     for p in slides:
         layout = str(p.get("layout") or "")
-        fam = FAMILY.get(layout, layout)
+        fam = str(p.get("skeleton") or "").strip() or FAMILY.get(layout, layout)
         if layout == "blocks":
             types = {b.get("type") for b in (p.get("blocks") or []) if isinstance(b, dict)}
             fam = "blocks:diagram" if types & {"graph", "flow", "timeline"} else "blocks"

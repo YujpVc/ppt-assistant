@@ -48,6 +48,7 @@
 
 ## 跨页节奏（必查）
 
+- 先看 `skeleton` 再看 layout 名；不同 layout 名但同一 skeleton（编号列/左图右列/账本）算重复。
 - 同一 family 全 deck 最多 2 页；出现两对重复（architecture×2 + evidence_grid×2）必须列“必须改”，即使不相邻。
 - 下半页空版心 >1.2in 或 item 覆盖不足，必须列，不能用“密度 PASS”豁免。
 - 同族版式最多连续 2 页；第 3 页还同骨架，直接列“必须改”。
