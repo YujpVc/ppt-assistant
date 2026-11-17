@@ -2,7 +2,9 @@
 
 DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 PowerPoint 生成和修改、自主 GPT 生图、满幅/渐变蒙版图片排版、结构质检、可选的联网配图与渲染审查。安装只插入 `ppt-assistant` 预设，不修改标准模式、模型路由、权限或现有会话。
 
-## 安装（照着做就行）
+## 安装（按顺序执行）
+
+不同系统的路径和权限可能不同；遇到不一致时以实际环境为准，不必强行照搬。
 
 ### 0. 先确认 DSH 能用
 
@@ -40,7 +42,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.31
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.32
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -83,7 +85,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.31`。
+应看到 `2.0.32`。
 
 ### 卸载
 
