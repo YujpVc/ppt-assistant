@@ -43,6 +43,14 @@ def main() -> int:
             types = {b.get("type") for b in (p.get("blocks") or []) if isinstance(b, dict)}
             fam = "blocks:diagram" if types & {"graph", "flow", "timeline"} else "blocks"
         families.append(fam)
+    from collections import Counter
+    counts = Counter(families)
+    repeated = [f for f, n in counts.items() if n >= 2]
+    if len(repeated) >= 2:
+        problems.append("同一骨架出现两对以上：" + "、".join(f"{f}×{counts[f]}" for f in repeated))
+    if counts and max(counts.values()) > 3:
+        worst = max(counts, key=counts.get)
+        problems.append(f"单一骨架 {worst} 超过 3 页（{counts[worst]} 页）")
     run = 1
     for i in range(1, len(families)):
         run = run + 1 if families[i] == families[i - 1] else 1

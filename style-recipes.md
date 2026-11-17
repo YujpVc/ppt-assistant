@@ -175,6 +175,7 @@
 - **元素/图片不重复**：同一组要素组合不超过 3 页；图片至少两种处理（crop/duotone/mono/arch/circle），不要每页同一矩形贴纸；card 底色在 panel/tint/soft 之间轮换。
 - **页码**：每页都有 `chrome:page`，全出血页也不省。
 - **短提示词自动展开**：用户只说素材路径+生成 PPT 时，按 `references/short-brief.md` 默认 8–12 页，不追问；假设写进 brief。
+- **重复骨架最多一对**：同一 family 最多 2 页；两对重复即失败（architecture×2 + evidence×2 这种）。
 - **跨页节奏**：8+ 页同一族最多连续 2 页；图片主导 ≤60%；至少 2 页可编辑机制图；写 spec 后跑 `rhythm_check.py <spec.json>`，exit 2 先改骨架。
 - **配色自选**：从 `references/palette-library.md` 选 2 个方向再定；不要默认暖纸+陶土；一个 deck 一个 accent；tint/line 从 accent 派生。
 - **字体尺度**：页标题 30–32、章节页 38–40、kicker 8.5–9、正文 9.5–10.5、card 标题 12–13、stat 24–28、来源 7.5–8；同级不忽大忽小。
