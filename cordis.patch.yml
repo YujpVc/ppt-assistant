@@ -87,6 +87,8 @@
                 - **流程图节点**：boxes 用 `role`（input/process/decision/output）和 `shape`（round/rect/circle/diamond/hex）；标题/正文必须在节点内上下左右居中；箭头用真实箭头并带动作标签，别用文字“→”凑。
                 - 信息密度靠 5–7 个短模块、数字、层级、流程、标注和对比；不靠一段话。
                 - **元素不要重复**：同一组 card+flow+chips 不要超过 3 页；每页至少换一种要素（stat/quote/image/rule）或换宽窄。
+                - **跨页节奏是硬门**：8+ 页的 deck，单族版式不得连续 3 页；图片主导页 ≤60%；至少 2 页可编辑机制图（architecture / route_map / flow_chart / diagram_page / state_* / blocks graph）。写 spec 后跑 `bash <engine-root>/run_py.sh rhythm_check.py <spec.json>`，exit 2 先改骨架再谈美化。
+                - **机制图不能是照片+卡**：规程→任务、能力→调用、异常→恢复、验证→结果，至少要有一条带节点/边/回边或分支的可编辑图；照片只能辅助，不能替代。
                 - **配色由 agent 手选，参考 Coolors trending**：写 spec 前先列 3 个候选（`bg/panel/text/accent/accent2/accent3` + 一句理由），结合图片主色和内容选 1 个；不要默认沿用上次的鼠尾草/深青，也不要用 seed/router 固定。一个主 accent + 最多两个辅助色；辅助只给图标/时间窗/人工/安全/证据，单页 ≤10%；正文对比 ≥4.5:1。
                 - **内部配色要有层次**：                - **内部配色要有层次**：一个主 accent 之外，允许最多两个辅助色（`meta.colors.accent2/accent3`，默认暖赭/冷灰）。辅助色只给图标、时间窗、警告/对照，单页占比 ≤10%；不要彩虹色。参考 Coolors 的 60-30-10，不照抄色卡。
                 - **复杂页必须有图**：P02/P03/P05/P06 这类机制页至少 1 页放真实场景图；图片用半幅/竖切/圆角/渐变蒙版，不要角落缩略图。P06 不许只剩阶梯+表格。

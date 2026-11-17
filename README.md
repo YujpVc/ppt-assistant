@@ -40,7 +40,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.27
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.28
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -83,7 +83,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.27`。
+应看到 `2.0.28`。
 
 ### 卸载
 
@@ -235,6 +235,16 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 - 稳定页名 `P01…` 写在 slide name 里，换序也不丢身份；台账按页列出标题、文字、数字、图片的变化。
 - 保护页被改、越权修改、缺页都会让命令以 exit 2 结束；交付时附上 `ledger.md`。
 - 数字逐位核对，不为了排版改精度；截图与交付文件版本必须一致。
+
+## 跨页节奏门
+
+8+ 页的 deck 先跑：
+
+```bash
+bash <engine-root>/run_py.sh rhythm_check.py <spec.json>
+```
+
+它会拦：连续 3 页同族、图片主导 >60%、机制图少于 2 页。exit 2 先改骨架，不要先美化。
 
 ## 审查门（交付前）
 
