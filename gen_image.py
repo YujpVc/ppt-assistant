@@ -139,6 +139,10 @@ def _proxy_map():
 
 def api_call(url: str, key: str, body: bytes, content_type: str,
              timeout: int) -> dict[str, Any]:
+    # urllib is the default path: requests could hang on a read timeout here
+    # while the same stdlib request completed. Opt into requests only when
+    # debugging with PPT_IMAGE_REQUESTS=1.
+    use_requests = os.environ.get("PPT_IMAGE_REQUESTS") == "1"
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": content_type,
@@ -148,7 +152,7 @@ def api_call(url: str, key: str, body: bytes, content_type: str,
         import requests
     except ImportError:
         requests = None
-    if requests is not None:
+    if requests is not None and use_requests:
         try:
             response = requests.post(url, data=body, headers=headers,
                                      timeout=timeout, proxies=_proxy_map())
@@ -184,11 +188,12 @@ def api_call(url: str, key: str, body: bytes, content_type: str,
 
 
 def download(url: str, timeout: int = 120) -> bytes:
+    use_requests = os.environ.get("PPT_IMAGE_REQUESTS") == "1"
     try:
         import requests
     except ImportError:
         requests = None
-    if requests is not None:
+    if requests is not None and use_requests:
         try:
             response = requests.get(url, timeout=timeout, proxies=_proxy_map(),
                                     headers={"User-Agent": "ppt-assistant-image/1.0"})
