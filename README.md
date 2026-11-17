@@ -40,7 +40,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.28
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.29
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -83,7 +83,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.28`。
+应看到 `2.0.29`。
 
 ### 卸载
 
@@ -92,6 +92,17 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 ```
 
 只删插件包，不动会话、世界、日记、模板和你的配置。
+
+## 最短用法
+
+把素材路径和一句目标给 PPT 助手即可：
+
+```text
+图片和附件、示例作者负责部分_材料_xxx.md，生成这部分的 PPT。
+图里是我们的机器人本体，可以自主生图。
+```
+
+模式会按 `references/short-brief.md` 自动展开：8–12 页、3 套配色候选、章节页、机制图、图片/抠图、门禁和视觉审查，不需要你写长提示词。
 
 ## 运行环境
 
