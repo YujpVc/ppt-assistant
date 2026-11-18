@@ -101,7 +101,7 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 
 ## 视觉主角
 
-先定 1 页 hero（5 页恰好 1 页）、明暗过渡、40–54pt 大字、一种图法、至少一处 7/5 不对称；审查要问“这一页最让人记住什么”。详见 `references/aesthetic-direction.md`。
+先定 hero（每 5 页最多 1 页）、明暗过渡、40–54pt 大字、一种图法、至少一处 7/5 不对称；审查要问“这一页最让人记住什么”。详见 `references/aesthetic-direction.md`。
 
 ## 机制图与审美
 
