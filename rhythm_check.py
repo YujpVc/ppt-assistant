@@ -31,14 +31,11 @@ def main() -> int:
     ap.add_argument("spec")
     args = ap.parse_args()
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
-    slides = spec.get("slides") or []
-    if len(slides) < 8:
-        print("rhythm_check: ok — <8 pages, rhythm gate skipped")
-        return 0
+    slides = spec.get("slides") or spec.get("pages") or []
     families, problems = [], []
     missing_skeleton = [str(p.get("id") or i + 1) for i, p in enumerate(slides) if not str(p.get("skeleton") or "").strip()]
     if missing_skeleton:
-        problems.append("8+ 页必须给每页写 skeleton（编号列/左图右列/状态账本/链式/时间轴），缺：" + "、".join(missing_skeleton))
+        problems.append("每页必须写 skeleton（编号列/左图右列/状态账本/链式/时间轴），缺：" + "、".join(missing_skeleton))
     for p in slides:
         layout = str(p.get("layout") or "")
         fam = str(p.get("skeleton") or "").strip() or FAMILY.get(layout, layout)
@@ -66,14 +63,15 @@ def main() -> int:
     mech_n = 0
     for p in slides:
         layout = str(p.get("layout"))
-        if layout in MECH:
+        if p.get("mechanism") or layout in MECH:
             mech_n += 1
         elif layout == "blocks":
             types = {b.get("type") for b in (p.get("blocks") or []) if isinstance(b, dict)}
             if types & {"graph", "flow", "timeline"}:
                 mech_n += 1
-    if mech_n < 2:
-        problems.append(f"机制图只有 {mech_n} 页；8+ 页至少 2 页可编辑机制图")
+    need = 2 if len(slides) >= 8 else 1
+    if mech_n < need:
+        problems.append(f"机制图只有 {mech_n} 页；{len(slides)} 页至少 {need} 页可编辑机制图（节点/边/回边/分支）")
     if problems:
         print("rhythm_check: below floor")
         for p in problems:

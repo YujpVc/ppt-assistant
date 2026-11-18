@@ -42,7 +42,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.32
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.33
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -85,7 +85,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.32`。
+应看到 `2.0.33`。
 
 ### 卸载
 
@@ -104,7 +104,7 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 图里是我们的机器人本体，可以自主生图。
 ```
 
-模式会按 `references/short-brief.md` 自动展开：8–12 页、3 套配色候选、章节页、机制图、图片/抠图、门禁和视觉审查，不需要你写长提示词。
+模式会按 `references/short-brief.md` 自动展开：5–12 页、3 套配色候选、章节页、机制图、图片/抠图、门禁和视觉审查，不需要你写长提示词。明确说“只做 5 页”时会套用固定的五页叙事模板。
 
 ## 运行环境
 
@@ -257,7 +257,7 @@ bash run_py.sh deck_baseline.py compare baseline.json 新稿.pptx \
 bash <engine-root>/run_py.sh rhythm_check.py <spec.json>
 ```
 
-它会拦：8+ 页缺 skeleton、连续 3 页同族、同一 skeleton 出现两对重复、图片主导 >60%、机制图少于 2 页。exit 2 先改骨架，不要先美化。
+它会拦：缺 skeleton（5 页也拦）、连续 3 页同族、同一 skeleton 出现两对重复、图片主导 >60%、5 页少于 1 页/8+ 页少于 2 页机制图。exit 2 先改骨架，不要先美化。
 
 ## 审查门（交付前）
 
