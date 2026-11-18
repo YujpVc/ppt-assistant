@@ -24,12 +24,13 @@
 
 ## 3. 机制图与折线
 
+机制页优先 `diagram_kit.py`：节点（box/round/diamond/hexagon/cylinder/document/start/end/manual/delay/note）、`edge()` 正交折线、`lane()`、`legend()`、`bracket()`、`axis()`、`note()`。元素目录见 `references/diagram-kit.md`。
+
+
 - **一条关系 = 一条连续折线，只在终点一个箭头**；禁止用多条直 connector 拼拐角（拐角会留下断头箭头）。custom builder 使用 `connectors.add_polyline`。
 - 图注写什么，图里就必须有什么；通用场景不能当状态/时点证据，只能标“场景示意”。
 - 每页最多两个中性面 + 一个主强调色；2×2 卡不能四色，语义色不能兼作普通卡底。
 - 四柱等权必须有分组/阶梯/对照隔断。
-
-## 3. 机制图
 
 - 源材料里存在**流程、状态机、异常分支、跨设备交接、证据回写**之一，才画机制图；
 - 机制图必须用 custom builder 画节点、边、回边/分支；不能拿三张卡加箭头冒充；
