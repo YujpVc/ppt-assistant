@@ -10,7 +10,7 @@
 
 ## 0.5 先定视觉主角
 
-写 brief 时同时定：哪一页是 hero（每 5 页最多 1 页；用户指定页数时按比例）、明暗系统（深/浅怎么过渡）、一句 40–54pt 大字、图片处理方式、哪一页做 7/5 不对称。详见 `references/aesthetic-direction.md`。没有 hero 的 brief 不进入构建。
+写 brief 时同时定：哪一页是 hero（每 5 页最多 1 页；用户指定页数时按比例）、光感/明暗策略（可全浅、可全深，不强制过渡）、一句 40–54pt 大字、图片处理方式、哪一页做 7/5 不对称。详见 `references/aesthetic-direction.md`。没有 hero 的 brief 不进入构建。
 
 ## 1. 先写 design brief
 
