@@ -42,7 +42,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.37
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@latest
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -85,7 +85,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.37`。
+应看到当前安装的版本号（以 `npm view @yujp_vc/ppt-assistant version` 为准）。
 
 ### 卸载
 
