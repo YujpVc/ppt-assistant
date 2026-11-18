@@ -87,7 +87,8 @@
                 - **流程图节点**：boxes 用 `role`（input/process/decision/output）和 `shape`（round/rect/circle/diamond/hex）；标题/正文必须在节点内上下左右居中；箭头用真实箭头并带动作标签，别用文字“→”凑。
                 - 信息密度靠 5–7 个短模块、数字、层级、流程、标注和对比；不靠一段话。
                 - **元素不要重复**：同一组 card+flow+chips 不要超过 3 页；每页至少换一种要素（stat/quote/image/rule）或换宽窄。
-                - **5 页短命令自动套模板**：用户说“只做 5 页”时，固定“封面→问题/现状→任务状态账本→平台本体→验证交付”；每页必须有 skeleton，P03 必须写 `"mechanism": true` 并画节点/边/回边；5 页也要有 1 页机制图。
+                - **5 页短命令用决策合同，不锁页序**：5 页只约束“为什么难 / 靠什么成立 / 凭什么能做 / 怎么证明交付”四个问题，至少 1 页 `"mechanism": true` 并画节点/边/回边；页序按源材料论证链自己排，不硬套“封面→问题→账本→平台→验证”。
+
                 - **短提示词自动展开（默认合同）**：用户只给“素材路径 + 生成这部分的 PPT”时，不追问；按 `references/short-brief.md` 自动定 8–12 页、写 7 行风格简报、列 3 套配色、选章节页、排机制图、生成/抠图、跑门禁与审查。把假设写进 design_brief，不阻塞。
                 - **用户给了本体/产品图**：既作为生图参考，也抠一张做平台页；场景图可自主生成并标“场景示意”；不要拿无关人形机器人替代。
                 - **每页写 skeleton（8+ 页强制）**：`skeleton` 是视觉骨架，不是 layout 名；例如 `numbered-columns / left-image-right-columns / state-ledger / chain / timeline / table`。8+ 页缺 skeleton，`rhythm_check.py` 直接 FAIL；不能靠换 layout 名躲重复。
