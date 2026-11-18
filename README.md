@@ -103,6 +103,10 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 
 先定 hero（每 5 页最多 1 页）、光感策略（全浅/全深都可）、40–54pt 大字、一种图法、至少一处 7/5 不对称；审查要问“这一页最让人记住什么”。详见 `references/aesthetic-direction.md`。
 
+## 文字预算
+
+非表/非机制页 ≤420 字、≤32 文本块；表/机制页 ≤700 字、≤80 块。
+
 ## 机制图与审美
 
 - 一条关系一条连续折线，只有终点一个箭头；引擎提供 `connectors.add_polyline`。

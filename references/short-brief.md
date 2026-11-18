@@ -59,6 +59,7 @@
 ```bash
 rhythm_check.py spec.json
 density_check.py spec.json --strict
+text_budget_check.py deck.pptx spec.json
 quality_check.py deck.pptx
 review_gate.py output/
 ```

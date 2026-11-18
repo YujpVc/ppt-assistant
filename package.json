@@ -56,7 +56,8 @@
     "diagram_kit.py",
     "references/diagram-kit.md",
     "references/zero-shot-budget.md",
-    "references/aesthetic-direction.md"
+    "references/aesthetic-direction.md",
+    "text_budget_check.py"
   ],
   "dsh": {
     "bundle": {
