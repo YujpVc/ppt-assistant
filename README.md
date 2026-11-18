@@ -42,7 +42,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.33
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.34
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -85,7 +85,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.33`。
+应看到 `2.0.34`。
 
 ### 卸载
 
@@ -94,6 +94,13 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 ```
 
 只删插件包，不动会话、世界、日记、模板和你的配置。
+
+## 机制图与审美
+
+- 一条关系一条连续折线，只有终点一个箭头；引擎提供 `connectors.add_polyline`。
+- 每页最多两个中性面 + 一个主强调色；2×2 卡不能四色，语义色不能当普通卡底。
+- 图注必须和画面一致；通用场景不能当状态/时点证据。
+- 视觉审查必须查连线拓扑、颜色角色、图片信息量，不能用“差异很小”豁免。
 
 ## 最短用法
 
