@@ -104,7 +104,7 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 图里是我们的机器人本体，可以自主生图。
 ```
 
-模式会按 `references/short-brief.md` 自动展开：5–12 页、3 套配色候选、章节页、机制图、图片/抠图、门禁和视觉审查，不需要你写长提示词。明确说“只做 5 页”时会按内容选择五页结构，只锁问题覆盖和机制页，不锁页序。
+模式会按 `references/short-brief.md` 自动展开：先写主张/判断/证据/机制的 brief，再定 5–12 页和版式；不锁页序，不硬套章节模板。
 
 ## 运行环境
 

@@ -29,6 +29,7 @@ IMAGE_DOMINANT = {"image_hero", "image_statement", "image_band", "image_overlay"
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("spec")
+    ap.add_argument("--require-mechanism", action="store_true", help="complex decks only: require mechanism pages")
     args = ap.parse_args()
     spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
     slides = spec.get("slides") or spec.get("pages") or []
@@ -69,8 +70,10 @@ def main() -> int:
             types = {b.get("type") for b in (p.get("blocks") or []) if isinstance(b, dict)}
             if types & {"graph", "flow", "timeline"}:
                 mech_n += 1
-    need = 2 if len(slides) >= 8 else 1
-    if mech_n < need:
+    need = 0
+    if args.require_mechanism:
+        need = 2 if len(slides) >= 8 else 1
+    if need and mech_n < need:
         problems.append(f"机制图只有 {mech_n} 页；{len(slides)} 页至少 {need} 页可编辑机制图（节点/边/回边/分支）")
     if problems:
         print("rhythm_check: below floor")
