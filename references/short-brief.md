@@ -2,6 +2,12 @@
 
 用户只给“素材路径 + 生成这部分的 PPT”，不追问；先写 brief，再动手。目标是让 PPT 助手**通用**，不是套某个固定页序。
 
+## 0. 预算与停手
+
+先设时间盒：5 页 25 分钟 / 6–8 页 35 分钟 / 8+ 页 40 分钟；bash 调用上限 60/80/100。生图单张 60 秒、失败最多重试 1 次。审查最多 2 轮，只修 must-fix，建议级不 loop。超时交 draft，不无限磨。详见 `references/zero-shot-budget.md`。
+
+机制页需要节点/端口/回边/分支/账本字段/多段不等宽时，**第一版就 custom builder + diagram_kit**，禁止先做 stock 再补洞。
+
 ## 1. 先写 design brief
 
 写进 `design_brief_and_page_plan.md`：

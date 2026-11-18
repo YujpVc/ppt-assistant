@@ -42,7 +42,7 @@ web
 推荐 npm：
 
 ```bash
-dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.35
+dsh plugin --profile desktop add @yujp_vc/ppt-assistant@2.0.36
 ```
 
 把 `desktop` 换成你的 profile 名。安装指定版本更稳；想跟最新版：`@latest`。
@@ -85,7 +85,7 @@ dsh plugin --profile desktop list | grep ppt-assistant
 node -p "require('<profile目录>/node_modules/@yujp_vc/ppt-assistant/package.json').version"
 ```
 
-应看到 `2.0.35`。
+应看到 `2.0.36`。
 
 ### 卸载
 
@@ -94,6 +94,10 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 ```
 
 只删插件包，不动会话、世界、日记、模板和你的配置。
+
+## 时间盒
+
+5 页 25 分钟 / 6–8 页 35 分钟 / 8+ 页 40 分钟；bash 上限 60/80/100。生图单张 60 秒，审查最多 2 轮，只修 must-fix。超时交 draft，不无限磨 stock。详见 `references/zero-shot-budget.md`。
 
 ## 机制图与审美
 
