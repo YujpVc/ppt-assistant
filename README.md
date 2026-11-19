@@ -1,5 +1,7 @@
 # PPT 助手
 
+中文 · [English](README.en.md)
+
 <div align="center">
 
 **把一份文档，做成评审愿意读下去的可编辑 PPT。**
@@ -53,6 +55,102 @@ dsh plugin --profile <profile> add @yujp_vc/ppt-assistant@latest
 ```
 
 把 `<profile>` 换成你的 profile 名（常见 `desktop` / `web`），重启 DSH，新建会话选「PPT 助手」。完整步骤见下方安装。
+
+## 做什么 / 不做什么
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**做**
+
+- 源文档 / 图片 → 可编辑的 `.pptx`
+- 先写主张与判断，再定页序，不按章节硬套
+- 流程 / 状态 / 异常页用节点、边、回边画机制图
+- 版式密度、文字预算、最小字号、页码/来源门禁
+- 独立视觉审查；有必须改就重建再审查
+- 交付 `spec.json` + `custom_builder.py`，可重建
+
+</td>
+<td width="50%" valign="top">
+
+**不做**
+
+- 不做 GUI 工作台，不是可视化 PPT 编辑器
+- 不保证任意现有 `.pptx` 逆向导入后可原样编辑
+- 不做动画、转场、SmartArt 复刻
+- 不提供模板商店；每套版式按内容生成
+- 不保证“每一页都像设计师做的”；只保证门禁与审查
+- 不替用户编造实测数据或研究结论
+
+</td>
+</tr>
+</table>
+
+## 怎么工作
+
+```text
+源材料
+  ↓
+1. design brief   一句话主张 / 3–5 个判断 / 证据 / 机制 / 受众 / 页数
+  ↓
+2. page plan      每页一个判断；决定哪些页需要 custom builder
+  ↓
+3. spec + builder 原生文本、表格、形状、连接线；不是整页截图
+  ↓
+4. render         PPTX → PDF / 逐页 PNG，人工和审查都看同一份
+  ↓
+5. gates          rhythm / density / text_budget / quality
+  ↓
+6. review         独立 reviewer 看渲染；must-fix → 回写 → 重建 → 再审
+  ↓
+7. deliver        deck.pptx / deck.pdf / spec.json / review_status.json
+```
+
+## 你可以这样问
+
+> 把这份申报书里的“报告”做成 5 页评审稿，图是我们的机器人本体，可以自主生图。
+
+> 做 8 页，冷灰 + 深蓝，少用卡片，机制页要能读。
+
+> 这页太满了，只保留一个结论和三条证据，重排后给我看。
+
+不需要写“skeleton / mechanism / 页序”；模式会自己先写 brief，再决定。
+
+## 质量门
+
+```bash
+bash <engine-root>/run_py.sh rhythm_check.py spec.json
+bash <engine-root>/run_py.sh density_check.py spec.json --strict
+bash <engine-root>/run_py.sh text_budget_check.py deck.pptx spec.json
+bash <engine-root>/run_py.sh quality_check.py deck.pptx
+bash <engine-root>/run_py.sh review_gate.py output/
+```
+
+- `review_gate` 只认带 `review-meta` 的独立审查；没有签名或还有 open 的 must-fix，就是 draft。
+- 单会话没有 reviewer 子 agent 时，模式应输出 draft，而不是说“完成”。
+
+## 兼容与依赖
+
+- DSH 0.2.1+（Linux Desktop 0.2.1-rc.3 已验证）
+- Python 3.10+，需要 `python-pptx`、`Pillow`；用 `run_py.sh` 自动找解释器
+- 渲染需要 LibreOffice 和 `pdftoppm`
+- 扫描件 OCR 需要 Tesseract；联网取图需要自己的 `PEXELS_API_KEY`
+- 生图是可选能力，key 由用户自己提供，不随包分发
+
+## 已知限制
+
+- stock 版式只适合简单页；需要节点/端口/回边的机制页应走 custom builder
+- 现有 `.pptx` 的“逆向导入后原位编辑”不是本项目的强项
+- 动画、转场、SmartArt、复杂图表保真不在范围内
+- 字体缺失、LibreOffice 版本差异会改变渲染；交付前必须看渲染图
+- AI 生图可能超时；超时就回退实拍/已有图，不阻塞 deck
+
+## 安全
+
+- API key 只在你自己的 `~/.config/ppt-assistant/image.json` 或环境变量里，不进仓库、不写进 deck
+- 不收集遥测；文件留在本地，只有你显式配置的生图/搜索会出网
+- 审查和构建都在本机完成；不要把内网地址或凭据写进公开 README
 
 ## 能力
 
@@ -353,6 +451,10 @@ bash <engine-root>/run_py.sh review_gate.py <output-dir>
 - 没有 `review-meta` / reviewer=builder：FAIL（自审不算）；
 - 最新报告 `status` 不是 `pass` 或 must_fix 还有 `open`：FAIL；
 - 只有 exit 0 才能说完成/发布。
+
+## 版本与变更
+
+版本号和变更记录以 [GitHub Releases](https://github.com/YujpVc/ppt-assistant/releases) 为准；本 README 不写死版本号，避免文档与包不一致。
 
 ## 打包
 
