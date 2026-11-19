@@ -1,6 +1,69 @@
 # PPT 助手
 
-DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 PowerPoint 生成和修改、自主 GPT 生图、满幅/渐变蒙版图片排版、结构质检、可选的联网配图与渲染审查。安装只插入 `ppt-assistant` 预设，不修改标准模式、模型路由、权限或现有会话。
+<div align="center">
+
+**把一份文档，做成评审愿意读下去的可编辑 PPT。**
+
+不是选一个模板再往里填字：先写判断，再决定页序；该画机制图时，用真正可编辑的节点和连线。
+
+[![npm](https://img.shields.io/npm/v/@yujp_vc/ppt-assistant?style=flat-square)](https://www.npmjs.com/package/@yujp_vc/ppt-assistant)
+[![license](https://img.shields.io/badge/license-MIT-2F6B45?style=flat-square)](LICENSE)
+[![DSH](https://img.shields.io/badge/DeepSeek%20Harness-preset-1F3A5F?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness)
+
+</div>
+
+## 先看效果
+
+<table>
+<tr>
+<td width="50%"><img src="assets/showcase/night-run.png" alt="夜跑入门 4 页"></td>
+<td width="50%"><img src="assets/showcase/coffee-pour.png" alt="手冲咖啡 4 页"></td>
+</tr>
+<tr>
+<td align="center"><b>夜跑入门</b> · 4 页<br>深色 + 荧光绿 · 机制页 + 三周表<br><a href="assets/showcase/night-run.pdf">PDF</a></td>
+<td align="center"><b>手冲咖啡</b> · 4 页<br>奶油纸底 + 陶土色 · 双泳道路径 + 配方表<br><a href="assets/showcase/coffee-pour.pdf">PDF</a></td>
+</tr>
+</table>
+
+> 两张都是 4 页演示稿，用来展示版式与机制图的宽度；不是项目交付稿。
+
+## 它和“模板生成器”不一样
+
+<table>
+<tr>
+<td width="33%" valign="top">
+<b>先写 brief，再排版</b><br>
+一句话主张、3–5 个判断、证据、机制、受众、页数。没有 brief 不进入构建。
+</td>
+<td width="33%" valign="top">
+<b>机制图是画出来的</b><br>
+有流程/状态/异常才画；`diagram_kit` 提供节点、单条折线、泳道、图例、括号、时间轴。
+</td>
+<td width="33%" valign="top">
+<b>不是“生成完就交”</b><br>
+结构门 + 文字预算 + 独立视觉审查；有必须改就回写、重建、再审查。
+</td>
+</tr>
+</table>
+
+## 30 秒开始
+
+```bash
+dsh plugin --profile <profile> add @yujp_vc/ppt-assistant@latest
+```
+
+把 `<profile>` 换成你的 profile 名（常见 `desktop` / `web`），重启 DSH，新建会话选「PPT 助手」。完整步骤见下方安装。
+
+## 能力
+
+| 能力 | 你能得到什么 |
+|---|---|
+| 源材料 → 大纲 | 从 md / 文档 / 图片里抽判断，不按章节硬套页序 |
+| 可编辑排版 | 原生文本、表格、形状、连接线；不是整页截图 |
+| 机制图 | 节点/边/回边/分支，单条折线只在终点一个箭头 |
+| 版式门禁 | 骨架重复、文字预算、密度、最小字号、页码/来源 |
+| 视觉审查 | 独立 reviewer 看渲染图；审查不通过不叫完成 |
+| 可重建 | spec + custom builder 留在输出目录，改一处能重跑 |
 
 ## 安装（按顺序执行）
 
