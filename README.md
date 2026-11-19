@@ -2,6 +2,21 @@
 
 DeepSeek Harness 的独立 PPT 助手预设：需求分析、大纲、可编辑 PowerPoint 生成和修改、自主 GPT 生图、满幅/渐变蒙版图片排版、结构质检、可选的联网配图与渲染审查。安装只插入 `ppt-assistant` 预设，不修改标准模式、模型路由、权限或现有会话。
 
+## 效果图
+
+两个不同主题，各 4 页，原生可编辑；不是把同一套模板换个标题。
+
+<table>
+<tr>
+<td width="50%"><img src="assets/showcase/night-run.png" alt="夜跑入门 4 页"></td>
+<td width="50%"><img src="assets/showcase/coffee-pour.png" alt="手冲咖啡 4 页"></td>
+</tr>
+<tr>
+<td align="center"><b>夜跑入门</b>：深色封面 + 三周进阶表<br><a href="assets/showcase/night-run.pdf">PDF</a></td>
+<td align="center"><b>手冲咖啡</b>：奶油纸底 + 萃取路径图<br><a href="assets/showcase/coffee-pour.pdf">PDF</a></td>
+</tr>
+</table>
+
 ## 安装（按顺序执行）
 
 不同系统的路径和权限可能不同；遇到不一致时以实际环境为准，不必强行照搬。
