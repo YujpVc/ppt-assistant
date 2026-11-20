@@ -47,7 +47,7 @@ source material
 
 ## Ask it like this
 
-> Turn section 4 of this grant into a 5-page review deck. The images are our robot; you may generate scenes.
+> Turn this report into a 5-page review deck. The images are product shots; you may generate scenes.
 
 > Make it 8 pages, cool grey + deep blue, fewer cards, and the mechanism page must be readable.
 

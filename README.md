@@ -109,7 +109,7 @@ dsh plugin --profile <profile> add @yujp_vc/ppt-assistant@latest
 
 ## 你可以这样问
 
-> 把这份申报书里的“报告”做成 5 页评审稿，图是我们的机器人本体，可以自主生图。
+> 把这份报告做成 5 页评审稿，图是产品图，可以自主生图。
 
 > 做 8 页，冷灰 + 深蓝，少用卡片，机制页要能读。
 
@@ -280,8 +280,8 @@ dsh plugin --profile desktop remove @yujp_vc/ppt-assistant
 把素材路径和一句目标给 PPT 助手即可：
 
 ```text
-图片和附件、示例作者负责部分_材料_xxx.md，生成这部分的 PPT。
-图里是我们的机器人本体，可以自主生图。
+图片和附件、input/材料.md，生成这部分的 PPT。
+图里是我们的产品图，可以自主生图。
 ```
 
 模式会按 `references/short-brief.md` 自动展开：先写主张/判断/证据/机制的 brief，再定 5–12 页和版式；不锁页序，不硬套章节模板。
