@@ -12,12 +12,12 @@ A DeepSeek Harness preset that turns a source document into a **fully editable P
 
 <table>
 <tr>
-<td width="50%"><img src="assets/showcase/night-run.png" alt="Night running, 4 pages"></td>
-<td width="50%"><img src="assets/showcase/coffee-pour.png" alt="Pour-over coffee, 4 pages"></td>
+<td width="50%"><img src="assets/showcase/braised-pork.png" alt="Braised pork commercial showcase, 5 pages"></td>
+<td width="50%"><img src="assets/showcase/riemann.png" alt="Riemann hypothesis academic explainer, 5 pages"></td>
 </tr>
 <tr>
-<td align="center"><b>Night running</b> · 4 pages<br><a href="assets/showcase/night-run.pdf">PDF</a></td>
-<td align="center"><b>Pour-over coffee</b> · 4 pages<br><a href="assets/showcase/coffee-pour.pdf">PDF</a></td>
+<td align="center"><b>Braised pork · showcase</b> · 5 pages<br><a href="assets/showcase/braised-pork.pdf">PDF</a></td>
+<td align="center"><b>Riemann hypothesis · academic</b> · 5 pages<br><a href="assets/showcase/riemann.pdf">PDF</a></td>
 </tr>
 </table>
 
