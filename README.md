@@ -18,16 +18,16 @@
 
 <table>
 <tr>
-<td width="50%"><img src="assets/showcase/night-run.png" alt="夜跑入门 4 页"></td>
-<td width="50%"><img src="assets/showcase/coffee-pour.png" alt="手冲咖啡 4 页"></td>
+<td width="50%"><img src="assets/showcase/braised-pork.png" alt="红烧肉商业展示稿 5 页"></td>
+<td width="50%"><img src="assets/showcase/riemann.png" alt="黎曼猜想学术科普稿 5 页"></td>
 </tr>
 <tr>
-<td align="center"><b>夜跑入门</b> · 4 页<br>深色 + 荧光绿 · 机制页 + 三周表<br><a href="assets/showcase/night-run.pdf">PDF</a></td>
-<td align="center"><b>手冲咖啡</b> · 4 页<br>奶油纸底 + 陶土色 · 双泳道路径 + 配方表<br><a href="assets/showcase/coffee-pour.pdf">PDF</a></td>
+<td align="center"><b>红烧肉 · 商业展示</b> · 5 页<br>整幅成菜 / 糖色色阶 / 五段火候<br><a href="assets/showcase/braised-pork.pdf">PDF</a></td>
+<td align="center"><b>黎曼猜想 · 学术科普</b> · 5 页<br>临界带结构图 / 显式公式 / 时间线证据<br><a href="assets/showcase/riemann.pdf">PDF</a></td>
 </tr>
 </table>
 
-> 两张都是 4 页演示稿，用来展示版式与机制图的宽度；不是项目交付稿。
+> 两张都是 5 页演示稿；左边是展示型，右边是学术型，用来展示同一引擎在不同内容上的版式宽度。
 
 ## 它和“模板生成器”不一样
 
